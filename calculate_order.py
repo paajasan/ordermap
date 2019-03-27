@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import numpy as np
 import MDAnalysis
-import sys, time
+import sys
 
 import inout as io
 
