@@ -39,7 +39,7 @@ def plot(filename, name="Order parameter"):
     ax.set_title(name)
     ax.set_xlabel("x (nm)")
     ax.set_ylabel("y (nm)")
-    print("Saving figure %s"%(filename[:-4]+".svg"))
+    print("Saving figure %s"%(filename[:-4]+".png"))
     plt.gcf().savefig(filename[:-4]+".png")
     plt.clf()
 

@@ -11,6 +11,9 @@ def costheta2(vec):
     Calculate the square of the cosine of the angle between the vector and z-axis
      Fortunately the dot product of (x1,x2,x3) and (0,0,1) is simply x3, so the
     calculation is rather trivial
+     If vec is a numpy ndarray, then the result will be calculated over the first
+    dimension, which should be of length 3 (any additional columns will be ignored
+    and less columns will give an error)
     """
     return (vec[2]**2 / (vec[0]**2+vec[1]**2+vec[2]**2))
 
@@ -62,8 +65,8 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
     # Get x and y values from the box vectors (assumes a cubic box)
     dim = u.dimensions
-    x = np.linspace(0, dim[0], ncells)
-    y = np.linspace(0, dim[1], ncells)
+    x = np.linspace(0, dim[0], ncells+1)
+    y = np.linspace(0, dim[1], ncells+1)
 
     # If we are centering, also get the centering group
     centering = False
@@ -75,17 +78,17 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
         x -= com[0]
         y -= com[1]
 
-    # Get the needed variables for calculating grid indices
     xmax = x[-1]
     xmin = x[0]
     ymax = y[-1]
     ymin = y[0]
-    cellsizex = (xmax - xmin) / ncells
-    cellsizey = (ymax - ymin) / ncells
+    x = x[:-1]+(x[1]-x[0])/2
+    y = y[:-1]+(y[1]-y[0])/2
+
 
     # Set up the grids and a variable for storing the satrttime of each dt
     prev = 0
-    datagrid = np.zeros((x.shape[0], y.shape[0]))
+    datagrid = np.zeros((ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
 
 
@@ -129,17 +132,24 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
         if(centering):
             xycoord -= center.center_of_mass()[0:2]
 
-        for i, xy in enumerate(xycoord):
-            xi = int((xy[0] - xmin) // cellsizex)
-            yi = int((xy[1] - ymin) // cellsizey)
+        xcoord, ycoord = xycoord.T
 
-            if(xi >= 0 and yi >= 0 and xi < ncells and yi < ncells):
-                datagrid[yi, xi] += costheta2(vec[i])
-                ngrid[yi, xi]    += 1
+        # A weighted (non normed) histogram is just the sums of the weights in each gridcell
+        stat, x_edge, y_edge = np.histogram2d(xcoord, ycoord, weights=costheta2(vec.T),
+                                                bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+        # And then we calculate the amount of points in each gridcell
+        H,    x_edge, y_edge = np.histogram2d(xcoord, ycoord,
+                                                bins=ncells, range=((xmin, xmax), (ymin, ymax)))
 
+        datagrid += stat
+        ngrid    += H
+
+
+    # Print the last message
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
     print(fromatstr%(frames, frames))
 
+    # And finally write the last of the data
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
     datagrid *= 3/2
