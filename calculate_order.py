@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import numpy as np
 import MDAnalysis
-import sys
+import sys, time
 
 import inout as io
 
@@ -19,7 +19,7 @@ def costheta2(vec):
 
 
 def get_CtoH_selections(carbons):
-    #print("Starting to find the hydrogen bonded to %d atoms"%len(carbons))
+    print("Starting to find the hydrogen bonded to %d atoms"%len(carbons))
     u = carbons.universe
     sel1 = MDAnalysis.AtomGroup([], u)
     sel2 = MDAnalysis.AtomGroup([], u)
@@ -29,6 +29,17 @@ def get_CtoH_selections(carbons):
             sel1 += C
             sel2 += a
     return sel1, sel2
+
+
+def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot):
+    with np.errstate(invalid='ignore'):
+        datagrid /= ngrid
+
+    datagrid *= 3/2
+    datagrid -= 1/2
+    # Write NaNs to where the ngrid is too small
+    datagrid = np.where(ngrid < mindat, np.nan, datagrid)
+    io.write_to_file(out, x, y, datagrid, prev, t, plot)
 
 
 
@@ -82,6 +93,7 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     xmin = x[0]
     ymax = y[-1]
     ymin = y[0]
+    # move x and y from bin edges to bin centers
     x = x[:-1]+(x[1]-x[0])/2
     y = y[:-1]+(y[1]-y[0])/2
 
@@ -107,16 +119,7 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
         # If this isn't the first frame and the modulo is zero, do stuff
         if(ts.frame % dt == 0 and ts.frame!=0):
-            # Silence the warning about zero division, since we won't be using those values anyway
-            with np.errstate(invalid='ignore'):
-                datagrid /= ngrid
-
-
-            datagrid *= 3/2
-            datagrid -= 1/2
-            # Write NaNs to where the ngrid is too small
-            datagrid = np.where(ngrid < mindat, np.nan, datagrid)
-            io.write_to_file(out, x, y, datagrid, prev, t, plot)
+            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot)
             prev = t
 
             datagrid = np.zeros(datagrid.shape)
@@ -149,15 +152,9 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
     print(fromatstr%(frames, frames))
 
-    # And finally write the last of the data
-    with np.errstate(invalid='ignore'):
-        datagrid /= ngrid
-    datagrid *= 3/2
-    datagrid -= 1/2
     # for the last one we'll allow less data in case theere are less frames
     mindat = (mindat/dt)*(t-prev)/u.coord.dt
-    datagrid = np.where(ngrid < mindat, np.nan, datagrid)
-    io.write_to_file(out, x, y, datagrid, prev, t, plot)
+    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot)
 
 
 
