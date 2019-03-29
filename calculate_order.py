@@ -5,33 +5,12 @@ import MDAnalysis
 import sys
 
 import inout as io
-
-def costheta2(vec):
-    """
-    Calculate the square of the cosine of the angle between the vector and z-axis
-     Fortunately the dot product of (x1,x2,x3) and (0,0,1) is simply x3, so the
-    calculation is rather trivial
-     If vec is a numpy ndarray, then the result will be calculated over the first
-    dimension, which should be of length 3 (any additional columns will be ignored
-    and less columns will give an error)
-    """
-    return (vec[2]**2 / (vec[0]**2+vec[1]**2+vec[2]**2))
+from utils import *
 
 
-def get_CtoH_selections(carbons):
-    print("Starting to find the hydrogen bonded to %d atoms"%len(carbons))
-    u = carbons.universe
-    sel1 = MDAnalysis.AtomGroup([], u)
-    sel2 = MDAnalysis.AtomGroup([], u)
-    for C in carbons:
-        selH = C.residue.atoms.select_atoms("name H* and bonded group C", C=MDAnalysis.AtomGroup([C]))
-        for a in selH:
-            sel1 += C
-            sel2 += a
-    return sel1, sel2
 
 
-def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot):
+def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot):
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
 
@@ -39,13 +18,13 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot):
     datagrid -= 1/2
     # Write NaNs to where the ngrid is too small
     datagrid = np.where(ngrid < mindat, np.nan, datagrid)
-    io.write_to_file(out, x, y, datagrid, prev, t, plot)
+    io.write_to_file(out, x, y, datagrid, prev, t, leaflet, plot)
 
 
 
 
 
-def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=None, out="order", plot=False, mindat=10):
+def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*"):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -61,17 +40,30 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     # Get the selections
     print("\nSetting up selections")
     sel1 = u.select_atoms(sel1)
+    sel1leaf = ""
+    if(leaflets):
+        sel1leaf = "upper"
+        sel1, sellower1 = leafletdiv(sel1, leafletatom)
+
     if(sel2==""):
         sel1, sel2 = get_CtoH_selections(sel1)
+        if(leaflets):
+            sellower1, sellower2 = get_CtoH_selections(sellower1)
     else:
         sel2 = u.select_atoms(sel2)
+        sel2, sellower2 = leafletdiv(sel2, leafletatom)
 
     # Check the selection sizes
     if(len(sel1.atoms) != len(sel2.atoms)):
         raise ValueError("sel1 and sel2 are different sizes: %d and %d" % (len(sel1.atoms), len(sel2.atoms)))
+    if(leaflets and len(sellower1.atoms) != len(sellower2.atoms)):
+        raise ValueError("sellower1 and sellower2 are different sizes: %d and %d" % (len(sel1.atoms), len(sel2.atoms)))
 
-
-    print("Calculating order parameter for selections of %d atoms"%(len(sel1.atoms)))
+    if(leaflets):
+        print("Calculating order parameter for selections of %d atoms for upper leaflet"%(len(sel1.atoms)))
+        print("Calculating order parameter for selections of %d atoms for lower leaflet"%(len(sellower1.atoms)))
+    else:
+        print("Calculating order parameter for selections of %d atoms"%(len(sel1.atoms)))
 
 
     # Get x and y values from the box vectors (assumes a cubic box)
@@ -102,6 +94,9 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     prev = 0
     datagrid = np.zeros((ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
+    if(leaflets):
+        datagridlow = np.zeros((ncells, ncells))
+        ngridlow    = np.zeros(datagrid.shape)
 
 
     print("\nStarting to iterate trajectory")
@@ -119,11 +114,18 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
         # If this isn't the first frame and the modulo is zero, do stuff
         if(ts.frame % dt == 0 and ts.frame!=0):
-            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot)
+            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
             prev = t
 
             datagrid = np.zeros(datagrid.shape)
             ngrid    = np.zeros(datagrid.shape)
+
+            if(leaflets):
+                processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot)
+
+                datagridlow = np.zeros(datagrid.shape)
+                ngridlow    = np.zeros(datagrid.shape)
+
             print()
 
 
@@ -137,6 +139,16 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
         xcoord, ycoord = xycoord.T
 
+        if(leaflets):
+            r1low = sellower1.positions
+            r2low = sellower2.positions
+            xycoordlow = r1low[:, 0:2]
+            veclow = r2low - r1low
+            if(centering):
+                xycoordlow -= center.center_of_mass()[0:2]
+
+            xcoordlow, ycoordlow = xycoordlow.T
+
         # A weighted (non normed) histogram is just the sums of the weights in each gridcell
         stat, x_edge, y_edge = np.histogram2d(xcoord, ycoord, weights=costheta2(vec.T),
                                                 bins=ncells, range=((xmin, xmax), (ymin, ymax)))
@@ -147,6 +159,15 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
         datagrid += stat
         ngrid    += H
 
+        if(leaflets):
+            stat, x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow, weights=costheta2(veclow.T),
+                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            H,    x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow,
+                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
+            datagridlow += stat
+            ngridlow    += H
+
 
     # Print the last message
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
@@ -154,7 +175,11 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
     # for the last one we'll allow less data in case theere are less frames
     mindat = (mindat/dt)*(t-prev)/u.coord.dt
-    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, plot)
+    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
+
+    if(leaflets):
+        processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot)
+
 
 
 
@@ -165,5 +190,5 @@ if __name__ == '__main__':
     calculate_order(
         options.struct_in, options.traj_in, options.sel1, options.sel2,
         options.dt, options.gridn, options.center, options.outfile, options.plot,
-        options.mindat
+        options.mindat, options.leaflets, options.leafletatom
     )
