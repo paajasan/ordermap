@@ -8,17 +8,25 @@ def getSelection(sel):
     if(len(parts)!=3):
         return sel
     rangeparts = parts[2].split("-")
-    if(len(rangeparts)!=2):
-        return sel
-    try:
-        start = int(rangeparts[0])
-        end   = int(rangeparts[1])
-    except (ValueError):
+    if(len(rangeparts)==2):
+        try:
+            start = int(rangeparts[0])
+            end   = int(rangeparts[1])
+        except (ValueError):
+            return sel
+
+        sel = "resname %s and name "%parts[0]
+        for i in range(start, end+1):
+            sel += "%s%d "%(parts[1], i)
+    elif(len(rangeparts)==1):
+        try:
+            start = int(rangeparts[0])
+        except (ValueError):
+            return sel
+        sel = "resname %s and name %s%d"%(parts[0], parts[1], start)
+    else:
         return sel
 
-    sel = "resname %s and name "%parts[0]
-    for i in range(start, end+1):
-        sel += "%s%d "%(parts[1], i)
 
     return sel[:-1]
 
