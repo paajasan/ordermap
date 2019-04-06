@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import argparse
 
-from create_figs import plot as plotdata
+from src.create_figs import plot as plotdata
 
 def getSelection(sel):
     parts = sel.split()
@@ -121,7 +121,7 @@ def optP():
         '-divatom',
         dest='leafletatom',
         default="P*",
-        help="The atomname used for the division of leaflets [Default: %(default)d]"
+        help="The atomname used for the division of leaflets [Default: %(default)s]"
     )
 
 
@@ -159,7 +159,7 @@ def write_to_file(dest, x, y, data, starttime, endtime, leaflet="", plot=False):
     """
     As the name suggests writes the data to file. If plot=True, the data will also be plotted
     """
-    fname = "%s%dto%d%s.dat"%(dest, starttime/1000, endtime/1000, leaflet)
+    fname = "%s%04dto%04d%s.dat"%(dest, starttime/1000, endtime/1000, leaflet)
 
     print("Opening file %s for writing"%fname)
     with open(fname, "w") as f:

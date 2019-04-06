@@ -29,7 +29,7 @@ def plot(filename, name="Order parameter"):
 
     ax = plt.gca()
 
-    im = ax.contourf(x, y, Z, corner_mask=True, vmin=-0.5, vmax=0.5, cmap="plasma", levels=np.linspace(-0.5, 0.5, 21))
+    im = ax.contourf(x, y, -Z, corner_mask=True, vmin=-0.5, vmax=0.5, cmap="plasma", levels=np.linspace(-0.2, 0.3, 21))
 
     # Create colorbar
     divider = make_axes_locatable(ax)

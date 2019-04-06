@@ -1,11 +1,10 @@
-#!/usr/bin/env python3 -O
+#!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import numpy as np
 import MDAnalysis
 import sys
 
-import inout as io
-from utils import *
+from src.utils import *
 
 
 
@@ -186,6 +185,8 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
 
 if __name__ == '__main__':
+
+    import src.inout as io
     options = io.optP()
     calculate_order(
         options.struct_in, options.traj_in, options.sel1, options.sel2,
