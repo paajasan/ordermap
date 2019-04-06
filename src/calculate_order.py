@@ -5,6 +5,7 @@ import MDAnalysis
 import sys
 
 from src.utils import *
+import src.inout as io
 
 
 
@@ -186,7 +187,6 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
 if __name__ == '__main__':
 
-    import src.inout as io
     options = io.optP()
     calculate_order(
         options.struct_in, options.traj_in, options.sel1, options.sel2,

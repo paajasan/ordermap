@@ -23,7 +23,7 @@ def getSelection(sel):
             start = int(rangeparts[0])
         except (ValueError):
             return sel
-        sel = "resname %s and name %s%d"%(parts[0], parts[1], start)
+        sel = "resname %s and name %s%d "%(parts[0], parts[1], start)
     else:
         return sel
 
