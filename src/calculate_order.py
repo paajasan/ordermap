@@ -115,7 +115,6 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
         # If this isn't the first frame and the modulo is zero, do stuff
         if(ts.frame % dt == 0 and ts.frame!=0):
             processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
-            prev = t
 
             datagrid = np.zeros(datagrid.shape)
             ngrid    = np.zeros(datagrid.shape)
@@ -126,6 +125,7 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
                 datagridlow = np.zeros(datagrid.shape)
                 ngridlow    = np.zeros(datagrid.shape)
 
+            prev =  t
             print()
 
 
