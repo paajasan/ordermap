@@ -8,5 +8,5 @@ options = optP()
 calculate_order(
     options.struct_in, options.traj_in, options.sel1, options.sel2,
     options.dt, options.gridn, options.center, options.outfile, options.plot,
-    options.mindat, options.leaflets, options.leafletatom
+    options.mindat, options.leaflets, options.leafletatom, options.time
 )

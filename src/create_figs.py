@@ -44,6 +44,20 @@ def plot(filename, name="Order parameter"):
     plt.clf()
 
 
+def plot_time_series(fname, name="Order parameter in time"):
+    print("Reading data from "+fname)
+    x, y = np.loadtxt(fname, unpack=True)
+
+    plt.plot(x/1000, y)
+
+    plt.xlabel("t (ns)")
+    plt.ylabel("order parameter")
+    plt.title(name)
+    print("Saving figure %s"%(fname[:-4]+".png"))
+    plt.gcf().savefig(fname[:-4]+"_ts.png")
+    plt.clf()
+
+
 
 
 

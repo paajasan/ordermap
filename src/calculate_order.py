@@ -24,7 +24,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot):
 
 
 
-def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*"):
+def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -94,9 +94,12 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     prev = 0
     datagrid = np.zeros((ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
+    timedata = np.zeros((frames, ))
+    tx       = np.zeros((frames, ))
     if(leaflets):
         datagridlow = np.zeros((ncells, ncells))
         ngridlow    = np.zeros(datagrid.shape)
+        timedatalow = np.zeros((frames, ))
 
 
     print("\nStarting to iterate trajectory")
@@ -150,20 +153,29 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
             xcoordlow, ycoordlow = xycoordlow.T
 
         # A weighted (non normed) histogram is just the sums of the weights in each gridcell
-        stat, x_edge, y_edge = np.histogram2d(xcoord, ycoord, weights=costheta2(vec.T),
+        w = costheta2(vec.T)
+        stat, x_edge, y_edge = np.histogram2d(xcoord, ycoord, weights=w,
                                                 bins=ncells, range=((xmin, xmax), (ymin, ymax)))
         # And then we calculate the amount of points in each gridcell
         H,    x_edge, y_edge = np.histogram2d(xcoord, ycoord,
                                                 bins=ncells, range=((xmin, xmax), (ymin, ymax)))
 
+        if(time):
+            timedata[ts.frame] = np.average(w)
+            tx[ts.frame]          = t
+
         datagrid += stat
         ngrid    += H
 
         if(leaflets):
-            stat, x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow, weights=costheta2(veclow.T),
+            w = costheta2(veclow.T)
+            stat, x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow, weights=w,
                                                     bins=ncells, range=((xmin, xmax), (ymin, ymax)))
             H,    x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow,
                                                     bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
+            if(time):
+                timedatalow[ts.frame] = np.average(w)
 
             datagridlow += stat
             ngridlow    += H
@@ -176,9 +188,13 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     # for the last one we'll allow less data in case theere are less frames
     mindat = (mindat/dt)*(t-prev)/u.coord.dt
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
+    if(time):
+        io.write_time_series(out, tx, timedata, sel1leaf, plot)
 
     if(leaflets):
         processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot)
+        if(time):
+            io.write_time_series(out, tx, timedatalow, "lower", plot)
 
 
 
@@ -191,5 +207,5 @@ if __name__ == '__main__':
     calculate_order(
         options.struct_in, options.traj_in, options.sel1, options.sel2,
         options.dt, options.gridn, options.center, options.outfile, options.plot,
-        options.mindat, options.leaflets, options.leafletatom
+        options.mindat, options.leaflets, options.leafletatom, options.time
     )
