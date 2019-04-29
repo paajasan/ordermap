@@ -53,7 +53,7 @@ def plot_time_series(fname, name="Order parameter in time"):
     plt.xlabel("t (ns)")
     plt.ylabel("order parameter")
     plt.title(name)
-    print("Saving figure %s"%(fname[:-4]+".png"))
+    print("Saving figure %s"%(fname[:-4]+"_ts.png"))
     plt.gcf().savefig(fname[:-4]+"_ts.png")
     plt.clf()
 

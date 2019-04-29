@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import numpy as np
-import MDAnalysis
+import MDAnalysis, sys
+
+outputted1=False
 
 
 def leafletdiv(atomgroup, divatom):
-    print("Dividing selection using atomname \"%s\""%divatom)
+    global outputted1
+    if (not outputted1):
+        print("Dividing selection using atomname \"%s\""%divatom)
+        outputted1 = True
 
     # get the average over all atoms
     u = atomgroup.universe
@@ -41,7 +46,10 @@ def costheta2(vec):
 
 
 def get_CtoH_selections(carbons):
-    print("Starting to find the hydrogen bonded to %d atoms"%len(carbons))
+    if(np.all([carbons[0].name==c.name for c in carbons])):
+        print("Starting to find the hydrogen bonded to %d atoms (%s)"%(len(carbons), carbons[0].name))
+    else:
+        print("Starting to find the hydrogen bonded to %d atoms"%(len(carbons)))
     u = carbons.universe
     sel1 = MDAnalysis.AtomGroup([], u)
     sel2 = MDAnalysis.AtomGroup([], u)
@@ -50,4 +58,7 @@ def get_CtoH_selections(carbons):
         for a in selH:
             sel1 += C
             sel2 += a
+
+
+    print("Found %d atoms"%len(sel2))
     return sel1, sel2

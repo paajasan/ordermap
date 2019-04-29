@@ -10,7 +10,7 @@ import src.inout as io
 
 
 
-def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot):
+def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, carbanames):
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
 
@@ -18,13 +18,13 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot):
     datagrid -= 1/2
     # Write NaNs to where the ngrid is too small
     datagrid = np.where(ngrid < mindat, np.nan, datagrid)
-    io.write_to_file(out, x, y, datagrid, prev, t, leaflet, plot)
+    io.write_to_file(out, x, y, datagrid, prev, t, leaflet, plot, carbanames)
 
 
 
 
 
-def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
+def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -39,31 +39,43 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
     # Get the selections
     print("\nSetting up selections")
-    sel1 = u.select_atoms(sel1)
+    sel1 = [u.select_atoms(s) for s in sel1]
+    if(len(sel1)>1):
+        carbnames = [s.atoms[0].name for s in sel1]
+    else:
+        carbnames = [""]
     sel1leaf = ""
     if(leaflets):
         sel1leaf = "upper"
-        sel1, sellower1 = leafletdiv(sel1, leafletatom)
+        sellower1 = [None for s in sel1]
+        for i in range(len(sel1)):
+            sel1[i], sellower1[i] = leafletdiv(sel1[i], leafletatom)
 
     if(sel2==""):
-        sel1, sel2 = get_CtoH_selections(sel1)
+        sel2 = [None for s in sel1]
+        for i in range(len(sel1)):
+            sel1[i], sel2[i] = get_CtoH_selections(sel1[i])
         if(leaflets):
-            sellower1, sellower2 = get_CtoH_selections(sellower1)
+            sellower2 = [None for s in sellower1]
+            for i in range(len(sel1)):
+                sellower1[i], sellower2[i] = get_CtoH_selections(sellower1[i])
     else:
-        sel2 = u.select_atoms(sel2)
-        sel2, sellower2 = leafletdiv(sel2, leafletatom)
+        sel2[0] = u.select_atoms(sel2[0])
+        sellower2 = [None]
+        sel2[0], sellower2[0] = leafletdiv(sel2[0], leafletatom)
 
     # Check the selection sizes
-    if(len(sel1.atoms) != len(sel2.atoms)):
-        raise ValueError("sel1 and sel2 are different sizes: %d and %d" % (len(sel1.atoms), len(sel2.atoms)))
-    if(leaflets and len(sellower1.atoms) != len(sellower2.atoms)):
-        raise ValueError("sellower1 and sellower2 are different sizes: %d and %d" % (len(sel1.atoms), len(sel2.atoms)))
+    for i in range(len(sel1)):
+        if(len(sel1[i].atoms) != len(sel2[i].atoms)):
+            raise ValueError("sel1[%d] and sel2[%d] are different sizes: %d and %d" % (i, i, len(sel1[i].atoms), len(sel2[i].atoms)))
+        if(leaflets and len(sellower1[i].atoms) != len(sellower2[i].atoms)):
+            raise ValueError("sellower1[%d] and sellower2[%d] are different sizes: %d and %d" % (i, i, len(sel1[i].atoms), len(sel2[i].atoms)))
 
     if(leaflets):
-        print("Calculating order parameter for selections of %d atoms for upper leaflet"%(len(sel1.atoms)))
-        print("Calculating order parameter for selections of %d atoms for lower leaflet"%(len(sellower1.atoms)))
+        print("Calculating order parameter for selections of %d atoms for upper leaflet"%(np.sum([len(s.atoms) for s in sel1])))
+        print("Calculating order parameter for selections of %d atoms for lower leaflet"%(np.sum([len(s.atoms) for s in sel1])))
     else:
-        print("Calculating order parameter for selections of %d atoms"%(len(sel1.atoms)))
+        print("Calculating order parameter for selections of %d atoms"%(np.sum([len(s.atoms) for s in sel1])))
 
 
     # Get x and y values from the box vectors (assumes a cubic box)
@@ -92,14 +104,21 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
     # Set up the grids and a variable for storing the satrttime of each dt
     prev = 0
-    datagrid = np.zeros((ncells, ncells))
+    datagrid = np.zeros((len(sel1), ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
-    timedata = np.zeros((frames, ))
-    tx       = np.zeros((frames, ))
+    timedata = np.zeros((len(sel1), frames))
+    tx       = np.zeros((len(sel1), frames))
+
+    # dataholders for calculating the maps (see line 177)
+    stat = np.empty(datagrid.shape)
+    H    = np.empty(ngrid.shape)
+
     if(leaflets):
-        datagridlow = np.zeros((ncells, ncells))
+        datagridlow = np.zeros((len(sel1), ncells, ncells))
         ngridlow    = np.zeros(datagrid.shape)
-        timedatalow = np.zeros((frames, ))
+        timedatalow = np.zeros((len(sel1), frames))
+        statlow     = np.empty(datagridlow.shape)
+        Hlow        = np.empty(ngridlow.shape)
 
 
     print("\nStarting to iterate trajectory")
@@ -107,23 +126,29 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
     fromatstr = ("Frame %s%d%s"%("%",len(str(frames)), "d/%d"))
 
     print()
+
+
     # And finally start iterating the array
-    for ts in u.trajectory:
+    e+=1
+    if(e==0):
+        e=None
+
+    for ts in u.trajectory[b:e]:
         if(ts.frame%10==0):
-            sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
+            sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
             print(fromatstr%(ts.frame, frames))
 
         t=ts.time
 
         # If this isn't the first frame and the modulo is zero, do stuff
-        if(ts.frame % dt == 0 and ts.frame!=0):
-            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
+        if((ts.frame-b) % dt == 0 and ts.frame!=b):
+            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
 
             datagrid = np.zeros(datagrid.shape)
             ngrid    = np.zeros(datagrid.shape)
 
             if(leaflets):
-                processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot)
+                processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot, carbnames)
 
                 datagridlow = np.zeros(datagrid.shape)
                 ngridlow    = np.zeros(datagrid.shape)
@@ -133,52 +158,62 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
 
 
-        r1 = sel1.positions
-        r2 = sel2.positions
-        xycoord = r1[:, 0:2]
-        vec = r2 - r1
+        r1 = [s.positions for s in sel1]
+        r2 = [s.positions for s in sel2]
+        xycoord = [r[:, 0:2] for r in r1]
+        vec = [R2-R1 for R1, R2 in zip(r1, r2)]
         if(centering):
-            xycoord -= center.center_of_mass()[0:2]
+            for i in range(len(xycoord)):
+                xycoord[i] -= center.center_of_mass()[0:2]
 
-        xcoord, ycoord = xycoord.T
+            xcoord, ycoord = ([z[:,0] for z in xycoord], [z[:,1] for z in xycoord])
 
         if(leaflets):
-            r1low = sellower1.positions
-            r2low = sellower2.positions
-            xycoordlow = r1low[:, 0:2]
-            veclow = r2low - r1low
+            r1low = [s.positions for s in sellower1]
+            r2low = [s.positions for s in sellower2]
+            xycoordlow = [r[:, 0:2] for r in r1low]
+            veclow = [R2-R1 for R1, R2 in zip(r1low, r2low)]
             if(centering):
-                xycoordlow -= center.center_of_mass()[0:2]
+                for i in range(len(xycoordlow)):
+                    xycoordlow[i] -= center.center_of_mass()[0:2]
 
-            xcoordlow, ycoordlow = xycoordlow.T
 
-        # A weighted (non normed) histogram is just the sums of the weights in each gridcell
-        w = costheta2(vec.T)
-        stat, x_edge, y_edge = np.histogram2d(xcoord, ycoord, weights=w,
-                                                bins=ncells, range=((xmin, xmax), (ymin, ymax)))
-        # And then we calculate the amount of points in each gridcell
-        H,    x_edge, y_edge = np.histogram2d(xcoord, ycoord,
-                                                bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            xcoordlow, ycoordlow = ([z[:,0] for z in xycoordlow], [z[:,1] for z in xycoordlow])
+
+        w = [np.zeros(xx.shape) for xx in xcoord]
+
+        for i in range(H.shape[0]):
+            w[i] = costheta2(vec[i].T)
+            # A weighted (non normed) histogram is just the sums of the weights in each gridcell
+            stat[i], x_edge, y_edge = np.histogram2d(xcoord[i], ycoord[i], weights=w[i],
+                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            # And then we calculate the amount of points in each gridcell
+            H[i],    x_edge, y_edge = np.histogram2d(xcoord[i], ycoord[i],
+                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
 
         if(time):
-            timedata[ts.frame] = np.average(w)
-            tx[ts.frame]          = t
+            timedata[:, ts.frame] = [np.mean(wi) for wi in w]
+            tx[:, ts.frame]       = t
 
         datagrid += stat
         ngrid    += H
 
         if(leaflets):
-            w = costheta2(veclow.T)
-            stat, x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow, weights=w,
-                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
-            H,    x_edge, y_edge = np.histogram2d(xcoordlow, ycoordlow,
-                                                    bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            w = [np.zeros(xx.shape) for xx in xcoordlow]
+
+            for i in range(Hlow.shape[0]):
+                w[i] = costheta2(veclow[i].T)
+                statlow[i], x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i], weights=w[i],
+                                                        bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+                Hlow[i],    x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i],
+                                                        bins=ncells, range=((xmin, xmax), (ymin, ymax)))
 
             if(time):
-                timedatalow[ts.frame] = np.average(w)
+                timedatalow[:, ts.frame] = [np.mean(wi) for wi in w]
 
-            datagridlow += stat
-            ngridlow    += H
+            datagridlow += statlow
+            ngridlow    += Hlow
 
 
     # Print the last message
@@ -187,14 +222,14 @@ def calculate_order(topol, traj, sel1, sel2="None", dt=2500, ncells=20, center=N
 
     # for the last one we'll allow less data in case theere are less frames
     mindat = (mindat/dt)*(t-prev)/u.coord.dt
-    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot)
+    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
     if(time):
-        io.write_time_series(out, tx, timedata, sel1leaf, plot)
+        io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
 
     if(leaflets):
-        processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot)
+        processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot, carbnames)
         if(time):
-            io.write_time_series(out, tx, timedatalow, "lower", plot)
+            io.write_time_series(out, tx[:, b:e], timedatalow[:, b:e], "lower", plot, carbnames)
 
 
 
@@ -206,6 +241,6 @@ if __name__ == '__main__':
     options = io.optP()
     calculate_order(
         options.struct_in, options.traj_in, options.sel1, options.sel2,
-        options.dt, options.gridn, options.center, options.outfile, options.plot,
-        options.mindat, options.leaflets, options.leafletatom, options.time
+        options.dt, options.b, options.e, options.gridn, options.center,
+        options.outfile, options.plot, options.mindat, options.leaflets, options.leafletatom, options.time
     )
