@@ -48,7 +48,7 @@ def plot_time_series(fname, name="Order parameter in time"):
     print("Reading data from "+fname)
     x, y = np.loadtxt(fname, unpack=True)
 
-    plt.plot(x/1000, y)
+    plt.plot(x/1000, -y)
 
     plt.xlabel("t (ns)")
     plt.ylabel("order parameter")
@@ -58,6 +58,31 @@ def plot_time_series(fname, name="Order parameter in time"):
     plt.clf()
 
 
+
+def plot_carbs(fname, name="Order parameter per carbon"):
+    print("Reading data from "+fname)
+    carbs, carbnums, y = ([], [], [])
+
+    with open(fname) as f:
+        for line in f:
+            parts = line.split()
+            if (line.startswith("#") or len(parts)!=2):
+                continue
+            carbs.append(parts[0])
+            carbnums.append(parts[0][1:])
+            y.append(-float(parts[1]))
+
+
+    plt.plot(carbnums, y, "b-")
+    plt.gca().set_xticks(carbnums)
+    plt.gca().set_xticklabels(carbs)
+
+    plt.xlabel("carbon")
+    plt.ylabel("order parameter")
+    plt.title(name)
+    print("Saving figure %s"%(fname[:-4]+".png"))
+    plt.gcf().savefig(fname[:-4]+".png")
+    plt.clf()
 
 
 

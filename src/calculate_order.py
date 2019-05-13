@@ -14,8 +14,6 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
 
-    datagrid *= 3/2
-    datagrid -= 1/2
     # Write NaNs to where the ngrid is too small
     datagrid = np.where(ngrid < mindat, np.nan, datagrid)
     io.write_to_file(out, x, y, datagrid, prev, t, leaflet, plot, carbanames)
@@ -133,6 +131,10 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
     if(e==0):
         e=None
 
+    ############################################################################
+    #     Trajectory iteration start                                           #
+    ############################################################################
+
     for ts in u.trajectory[b:e]:
         if(ts.frame%10==0):
             sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
@@ -141,7 +143,7 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
         t=ts.time
 
         # If this isn't the first frame and the modulo is zero, do stuff
-        if((ts.frame-b) % dt == 0 and ts.frame!=b):
+        if(dt>0 and (ts.frame-b) % dt == 0 and ts.frame!=b):
             processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
 
             datagrid = np.zeros(datagrid.shape)
@@ -163,10 +165,11 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
         xycoord = [r[:, 0:2] for r in r1]
         vec = [R2-R1 for R1, R2 in zip(r1, r2)]
         if(centering):
+            centerCom = center.center_of_mass()[0:2]
             for i in range(len(xycoord)):
-                xycoord[i] -= center.center_of_mass()[0:2]
+                xycoord[i] -= centerCom
 
-            xcoord, ycoord = ([z[:,0] for z in xycoord], [z[:,1] for z in xycoord])
+        xcoord, ycoord = ([z[:,0] for z in xycoord], [z[:,1] for z in xycoord])
 
         if(leaflets):
             r1low = [s.positions for s in sellower1]
@@ -175,7 +178,7 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
             veclow = [R2-R1 for R1, R2 in zip(r1low, r2low)]
             if(centering):
                 for i in range(len(xycoordlow)):
-                    xycoordlow[i] -= center.center_of_mass()[0:2]
+                    xycoordlow[i] -= centerCom
 
 
             xcoordlow, ycoordlow = ([z[:,0] for z in xycoordlow], [z[:,1] for z in xycoordlow])
@@ -183,7 +186,7 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
         w = [np.zeros(xx.shape) for xx in xcoord]
 
         for i in range(H.shape[0]):
-            w[i] = costheta2(vec[i].T)
+            w[i] = 1.5*costheta2(vec[i].T)-0.5
             # A weighted (non normed) histogram is just the sums of the weights in each gridcell
             stat[i], x_edge, y_edge = np.histogram2d(xcoord[i], ycoord[i], weights=w[i],
                                                     bins=ncells, range=((xmin, xmax), (ymin, ymax)))
@@ -203,7 +206,7 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
             w = [np.zeros(xx.shape) for xx in xcoordlow]
 
             for i in range(Hlow.shape[0]):
-                w[i] = costheta2(veclow[i].T)
+                w[i] = 1.5*costheta2(veclow[i].T) - 0.5
                 statlow[i], x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i], weights=w[i],
                                                         bins=ncells, range=((xmin, xmax), (ymin, ymax)))
                 Hlow[i],    x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i],
@@ -216,12 +219,18 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
             ngridlow    += Hlow
 
 
+    ############################################################################
+    #     Trajectory iteration ends                                            #
+    ############################################################################
+
+
     # Print the last message
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
     print(fromatstr%(frames, frames))
 
     # for the last one we'll allow less data in case theere are less frames
-    mindat = (mindat/dt)*(t-prev)/u.coord.dt
+    if(dt>0):
+        mindat = (mindat/dt)*(t-prev)/u.coord.dt
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
     if(time):
         io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
