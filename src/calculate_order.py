@@ -22,7 +22,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
+def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -100,8 +100,8 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
     y = y[:-1]+(y[1]-y[0])/2
 
 
-    # Set up the grids and a variable for storing the satrttime of each dt
-    prev = 0
+    # Set up the grids and a variable for storing the satrttime of each davg
+    prev = b*u.coord.dt
     datagrid = np.zeros((len(sel1), ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
     timedata = np.zeros((len(sel1), frames))
@@ -135,15 +135,15 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
     #     Trajectory iteration start                                           #
     ############################################################################
 
-    for ts in u.trajectory[b:e]:
-        if(ts.frame%10==0):
+    for ts in u.trajectory[b:e:dt]:
+        if(ts.frame%(10*dt)==0):
             sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
             print(fromatstr%(ts.frame, frames))
 
         t=ts.time
 
         # If this isn't the first frame and the modulo is zero, do stuff
-        if(dt>0 and (ts.frame-b) % dt == 0 and ts.frame!=b):
+        if(davg>0 and (ts.frame-b) % davg == 0 and ts.frame!=b):
             processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
 
             datagrid = np.zeros(datagrid.shape)
@@ -229,8 +229,10 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
     print(fromatstr%(frames, frames))
 
     # for the last one we'll allow less data in case theere are less frames
-    if(dt>0):
-        mindat = (mindat/dt)*(t-prev)/u.coord.dt
+    if(davg>0):
+        mindat = (mindat/davg)*(t-prev)/u.coord.dt
+    else:
+        t=-1
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
     if(time):
         io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
@@ -239,17 +241,3 @@ def calculate_order(topol, traj, sel1, sel2="", dt=2500, b=0, e=-1, ncells=20, c
         processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot, carbnames)
         if(time):
             io.write_time_series(out, tx[:, b:e], timedatalow[:, b:e], "lower", plot, carbnames)
-
-
-
-
-
-
-if __name__ == '__main__':
-
-    options = io.optP()
-    calculate_order(
-        options.struct_in, options.traj_in, options.sel1, options.sel2,
-        options.dt, options.b, options.e, options.gridn, options.center,
-        options.outfile, options.plot, options.mindat, options.leaflets, options.leafletatom, options.time
-    )
