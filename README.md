@@ -75,25 +75,25 @@ This syntax is only valid for `-sel1` and not for the selection strings in optio
 
 | flag| input  | description | default |
 | --- |:-:| - | :-: |
-| `-sel2` | str | Selection string <sup>1.1</sup> |
-| `-o` | out | Output destination <sup>2</sup> | "order.dat" |
+| `-sel2` | str | Selection string [1.1] |
+| `-o` | out | Output destination [2] | "order.dat" |
 | `-b` | int | First frame to read from trajectory | 0 |
-| `-e` | int | Last frame to read from trajectory <sup>3</sup> | -1 |
+| `-e` | int | Last frame to read from trajectory [3] | -1 |
 | `-dt` | int | Only use every dt frame | 1 |
-| `-center` | str | Selection string <sup>1.2</sup> |
-| `-davg` | int | Number of frames to use for each heatmap <sup>4</sup> | 2500 |
+| `-center` | str | Selection string [1.2] |
+| `-davg` | int | Number of frames to use for each heatmap [4] | 2500 |
 | `-gridn` | int | Number of gridcells along x and y (NxN grid) | 20 |
 | `-mindat` | int | Minimum number of datapoints in each cell (else NaN) | 10 |
-| `-plot` | - | If set, makes plots of the data <sup>5</sup> |
-| `-leafdiv` | - | If set, makes divides the selection to two leaflets <sup>6</sup> |
-| `-divatom` | str | The atomname to use for the division to leaflets <sup>6</sup> | "P*" |
-| `-timeseries` | - | If set, also plots the timeseries for the selection(s) <sup>7</sup> |
-| `-sepcarbs` | - | If set, calclulates everything for each carbon in the chain separetely <sup>8</sup> |
+| `-plot` | - | If set, makes plots of the data [5] |
+| `-leafdiv` | - | If set, makes divides the selection to two leaflets [6] |
+| `-divatom` | str | The atomname to use for the division to leaflets [6] | "P*" |
+| `-timeseries` | - | If set, also plots the timeseries for the selection(s) [7] |
+| `-sepcarbs` | - | If set, calclulates everything for each carbon in the chain separetely [8] |
 
 1. Selections (both have to be selection strings handled by [`select_atoms`](https://www.mdanalysis.org/docs/documentation_pages/selections.html#selection-keywords) of MDAnalysis
-   1. If `-sel2` is not given, the second selection will be all the hydrogen bonded to the atoms of `-sel1` (and I'd suggest using this always).  
-   If for some reason this doesn't work, or you want to use `-sel2` for some other reason, make sure it will be the same size as `-sel1` and when ordered by atomnumber, the bonded atoms are found in the same index in each list.
-   2. If `-center` is given, the center of mass of this selection will be handled as the origon.  
+    1. If `-sel2` is not given, the second selection will be all the hydrogen bonded to the atoms of `-sel1` (and I'd suggest using this always).  
+    If for some reason this doesn't work, or you want to use `-sel2` for some other reason, make sure it will be the same size as `-sel1` and when ordered by atomnumber, the bonded atoms are found in the same index in each list.
+    2. If `-center` is given, the center of mass of this selection will be handled as the origon.  
     Could be for example `"protein"` so then the x and y coordinates are simply distances to the protein along x or y.
 
 2. Output destination with or without the `.dat` extension. Each filename will also include information on the time, leaflet (if `-leafdiv`) and carbon (if `-carbon`). For both `"order"` and `"order.dat"` the final names will be something like `order_0000to0250_C29_upper.dat`.
@@ -122,7 +122,7 @@ If `-timeseries` is also specified, an average per carbon will also be calculate
 **Parameter calculation**  
 The parameter is the deuterium order parameter defined as  
 ![3/2<cos2(theta)>-1/2](http://www.sciweavers.org/tex2img.php?eq=%5Cfrac%7B3%7D%7B2%7D%5Cleft%5Clangle%5Ccos%5E2%28%5Ctheta%29%5Cright%5Crangle-%5Cfrac%7B1%7D%7B2%7D&bc=Transparent&fc=Black&im=png&fs=12&ff=arev&edit=0)  
-where &theta; is the angle between the membrane normal and the C-H bond. For now it can only be calculated with an all-atomistic simulation and no correction is made for double bonds. Also the membrane normal cannot be specified, and is assumed to be the z-axis.
+where theta is the angle between the membrane normal and the C-H bond. For now it can only be calculated with an all-atomistic simulation and no correction is made for double bonds. Also the membrane normal cannot be specified, and is assumed to be the z-axis.
 
 **Bonded hydrogens**  
 The hydrogens' atomnames are assumed to match the string `"H*"` and no other atoms (that are bonded to the atoms of `-sel1`) should match it.
@@ -132,4 +132,4 @@ Some arguments may not be foolproof, so giving  them a value outside a useful ra
 Especially `-sel1` may work unexpectedly when trying to give selection strign to MDAnalysis and ot happens to comply tot the syntax discussed above.
 
 **Saved data**  
-The data in for the heatmaps is saved so the y-coordinate runs over rows and x over columns. This way you can read it with numpys `loadtxt` and y will be the 0<sup>th</sup> axis and x the 1<sup>st</sup>. Then you can simply give it to matplotlibs `contourf` and it should be oriented the right way.
+The data in for the heatmaps is saved so the y-coordinate runs over rows and x over columns. This way you can read it with numpys `loadtxt` and y will be the 0th axis and x the 1st. Then you can simply give it to matplotlibs `contourf` and it should be oriented the right way.
