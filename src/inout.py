@@ -43,8 +43,15 @@ def getSelection(sel, sepcar):
 
 def optP():
 
-    description = "Calculates the order parameter"
-    optParser = argparse.ArgumentParser(description=description)
+    description = "A program for calculating deuterium order parameter heatmaps"
+    optParser = argparse.ArgumentParser(prog="ordermap", description=description)
+
+    optParser.add_argument(
+        "-V", '--version',
+        action="version",
+        version="0.1.1"
+    )
+
 
     optParser.add_argument(
         '-f', type=str,
