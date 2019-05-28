@@ -55,16 +55,16 @@ def optP():
 
     optParser.add_argument(
         '-f', type=str,
-        dest='traj_in',
-        metavar="inputfilename",
+        dest='traj',
+        metavar="fname",
         required=True,
         help="Input trajectory (xtc)"
     )
 
     optParser.add_argument(
         '-s', type=str,
-        dest='struct_in',
-        metavar="inputfilename",
+        dest='topol',
+        metavar="fname",
         required=True,
         help="Input structure (gro/pdb/tpr)"
     )
@@ -90,7 +90,7 @@ def optP():
 
     optParser.add_argument(
         '-o',
-        dest='outfile',
+        dest='out',
         metavar="outputdest",
         default="order.dat",
         help="The output filenames without the times. \"-o out.dat\" and \"-o out\" will both result in " \
@@ -141,7 +141,7 @@ def optP():
 
     optParser.add_argument(
         '-gridn', type=int,
-        dest='gridn',
+        dest='ncells',
         metavar="N",
         default=20,
         help="The amount of gridpoints per side (ie. with gridn=N we end up with an NxN grid) [Default: %(default)d]"
@@ -216,25 +216,27 @@ def optP():
     else:
         options.sel2 = [options.sel2]
 
-    if(len(options.traj_in) < 4 or (options.traj_in[-4:] not in (".xtc", ".trr"))):
+    if(len(options.traj) < 4 or (options.traj[-4:] not in (".xtc", ".trr"))):
         raise ValueError(
             "File extension not recognised: %s\nOnly .xtc is allowed" % options.traj_in)
 
-    if(len(options.struct_in) < 4 or (options.struct_in[-4:] not in (".tpr", ".pdb", ".gro"))):
+    if(len(options.topol) < 4 or (options.topol[-4:] not in (".tpr", ".pdb", ".gro"))):
         raise ValueError(
             "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj_in)
 
-    if(options.sel2=="" and not options.struct_in.endswith(".tpr")):
+    if(options.sel2=="" and not options.topol.endswith(".tpr")):
         raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
 
-    if(options.outfile.endswith(".dat")):
-        options.outfile = options.outfile[:-4]
+    if(options.out.endswith(".dat")):
+        options.out = options.outfile[:-4]
 
     if(options.thick and not options.leaflets):
         raise ValueError("The thickness cannot be calculated without division to leaflets. Either specify -leafdiv or do not specify -thickness")
 
     if(options.thickatom==None):
         options.thickatom=options.divatom
+
+    delattr(options, "sepcar")
 
 
     return options

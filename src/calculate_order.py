@@ -3,6 +3,7 @@
 import numpy as np
 import MDAnalysis
 import sys
+import warnings
 
 from src.utils import *
 import src.inout as io
@@ -22,11 +23,15 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True):
+def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
+     To simplify the input between inout and this function, all keyword arguments not needed
+    will be safely ignored through **kwargs, though it does raise a warning.
     """
+    if(len(kwargs)>0):
+        warnings.warn("Unrecognized keyword arguments: %s"%str(kwargs), Warning, stacklevel=2)
 
     print("Setting up universe")
     # Start by loading a universe object

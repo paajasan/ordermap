@@ -5,9 +5,4 @@ from src.calculate_order import calculate_order
 
 
 options = optP()
-calculate_order(
-    options.struct_in, options.traj_in, options.sel1, options.sel2,
-    options.davg, options.b, options.e, options.dt, options.gridn, options.center,
-    options.outfile, options.plot, options.mindat, options.leaflets,
-    options.leafletatom, options.time
-)
+calculate_order(**vars(options))
