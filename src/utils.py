@@ -62,3 +62,58 @@ def get_CtoH_selections(carbons):
 
     print("Found %d atoms"%len(sel2))
     return sel1, sel2
+
+
+
+def setup_selections(u, sel1, sel2, leaflets, leafletatom):
+        # Get the selections
+        print("\nSetting up selections")
+        if(isinstance(sel1[0], str)):
+            sel1 = [u.select_atoms(s) for s in sel1]
+        else:
+            sel1 = [MDAnalysis.AtomGroup(s, u) for s in sel1]
+
+        if(len(sel1)>1):
+            carbnames = [s.atoms[0].name for s in sel1]
+        else:
+            carbnames = [""]
+        if(leaflets):
+            sellower1 = [None for s in sel1]
+            for i in range(len(sel1)):
+                sel1[i], sellower1[i] = leafletdiv(sel1[i], leafletatom)
+
+        if(sel2==[""]):
+            sel2 = [None for s in sel1]
+            for i in range(len(sel1)):
+                sel1[i], sel2[i] = get_CtoH_selections(sel1[i])
+            if(leaflets):
+                sellower2 = [None for s in sellower1]
+                for i in range(len(sel1)):
+                    sellower1[i], sellower2[i] = get_CtoH_selections(sellower1[i])
+        else:
+            if(isinstance(sel2[0], str)):
+                sel2 = u.select_atoms(sel2[0])
+            else:
+                sel2 = MDAnalysis.AtomGroup(sel2[0], u)
+            if(leaflets):
+                sellower2 = [None]
+                sel2[0], sellower2[0] = leafletdiv(sel2[0], leafletatom)
+
+        # Check the selection sizes
+        for i in range(len(sel1)):
+            if(len(sel1[i].atoms) != len(sel2[i].atoms)):
+                raise ValueError("sel1[%d] and sel2[%d] are different sizes: %d and %d" % (i, i, len(sel1[i].atoms), len(sel2[i].atoms)))
+            if(leaflets and len(sellower1[i].atoms) != len(sellower2[i].atoms)):
+                raise ValueError("sellower1[%d] and sellower2[%d] are different sizes: %d and %d" % (i, i, len(sel1[i].atoms), len(sel2[i].atoms)))
+
+        if(leaflets):
+            print("Calculating order parameter for selections of %d atoms for upper leaflet"%(np.sum([len(s.atoms) for s in sel1])))
+            print("Calculating order parameter for selections of %d atoms for lower leaflet"%(np.sum([len(s.atoms) for s in sel1])))
+        else:
+            print("Calculating order parameter for selections of %d atoms"%(np.sum([len(s.atoms) for s in sel1])))
+
+
+        if leaflets:
+            return sel1, sel2, sellower1, sellower2, carbnames
+
+        return sel1, sel2, carbnames
