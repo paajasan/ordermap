@@ -4,6 +4,42 @@ import numpy as np
 
 from src.create_figs import plot as plotdata, plot_time_series as plot_ts, plot_carbs as plot_c
 
+
+
+def read_ndx(ndx):
+    print("\nReading index groups from %s"%ndx)
+    indexes = {}
+    groups  = []
+    current=None
+
+    with open(ndx) as f:
+        for line in f:
+            line = line.strip()
+            if (line.startswith("[") and line.endswith("]")):
+                current = line[1:-1].strip()
+                indexes[current] = []
+                groups.append(current)
+                continue
+            parts = line.split()
+            for i in parts:
+                indexes[current].append(int(i)-1)
+
+    print("Found %d groups"%len(groups))
+    print("%-20s%10s\n"%("Group name", "atoms"))
+    for g in groups:
+        print("%-20s%10d"%(g, len(indexes[g])))
+
+    print()
+    if(len(groups)==2):
+        sel1 = [indexes[groups[0]]]
+        sel2 = [indexes[groups[1]]]
+        return sel1, sel2
+
+    sel1 = [indexes[g] for g in groups]
+
+    return sel1, [""]
+
+
 def getSelection(sel, sepcar):
     if(sepcar):
         sellist = []
@@ -70,12 +106,23 @@ def optP():
     )
 
     optParser.add_argument(
+        '-n', type=str,
+        dest='ndx',
+        metavar="fname",
+        default=None,
+        help="Index file (ndx). As with gmx order, should not hold any extra groups. "\
+        "With one or two groups, the groups hould be sel1 and sel2. Multiple groups imply "\
+        "-sepcarbs and are taken as sel1."
+    )
+
+    optParser.add_argument(
         '-sel1', type=str,
         dest='sel1',
         metavar="selection_str",
-        required=True,
+        default="",
         help="A selection string to find the atoms from which the vector for the order parameter starts from. "\
-            "Either a selection string understood by MDAnalysis or to for example get all POPC carbons with atomname C20 to C30 \"POPC C 20-30\"."
+            "Either a selection string understood by MDAnalysis or to for example get all POPC carbons with atomname C20 to C30 \"POPC C 20-30\". "\
+            "If index file is given, this is ignored."
     )
 
     optParser.add_argument(
@@ -205,12 +252,13 @@ def optP():
     )
 
 
-
-
-
     options = optParser.parse_args()
 
-    if(options.sel2==""):
+    if(options.ndx):
+        options.sel1, options.sel2 = read_ndx(options.ndx)
+    elif(not options.sel1):
+        raise ValueError("-sel1 must be given if no index file is")
+    elif(not options.sel2):
         options.sel1 = getSelection(options.sel1, options.sepcar)
         print("Using selection string \"%s\" for sel1"%options.sel1)
     else:
@@ -218,17 +266,17 @@ def optP():
 
     if(len(options.traj) < 4 or (options.traj[-4:] not in (".xtc", ".trr"))):
         raise ValueError(
-            "File extension not recognised: %s\nOnly .xtc is allowed" % options.traj_in)
+            "File extension not recognised: %s\nOnly .xtc is allowed" % options.traj)
 
     if(len(options.topol) < 4 or (options.topol[-4:] not in (".tpr", ".pdb", ".gro"))):
         raise ValueError(
-            "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj_in)
+            "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj)
 
-    if(options.sel2=="" and not options.topol.endswith(".tpr")):
+    if(options.sel2==[""] and not options.topol.endswith(".tpr")):
         raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
 
     if(options.out.endswith(".dat")):
-        options.out = options.outfile[:-4]
+        options.out = options.out[:-4]
 
     if(options.thick and not options.leaflets):
         raise ValueError("The thickness cannot be calculated without division to leaflets. Either specify -leafdiv or do not specify -thickness")
@@ -237,6 +285,7 @@ def optP():
         options.thickatom=options.divatom
 
     delattr(options, "sepcar")
+    delattr(options, "ndx")
 
 
     return options

@@ -23,7 +23,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, **kwargs):
+def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -42,7 +42,11 @@ def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncel
 
     # Get the selections
     print("\nSetting up selections")
-    sel1 = [u.select_atoms(s) for s in sel1]
+    if(isinstance(sel1[0], str)):
+        sel1 = [u.select_atoms(s) for s in sel1]
+    else:
+        sel1 = [MDAnalysis.AtomGroup(s, u) for s in sel1]
+
     if(len(sel1)>1):
         carbnames = [s.atoms[0].name for s in sel1]
     else:
@@ -54,7 +58,7 @@ def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncel
         for i in range(len(sel1)):
             sel1[i], sellower1[i] = leafletdiv(sel1[i], leafletatom)
 
-    if(sel2==""):
+    if(sel2==[""]):
         sel2 = [None for s in sel1]
         for i in range(len(sel1)):
             sel1[i], sel2[i] = get_CtoH_selections(sel1[i])
@@ -63,9 +67,13 @@ def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncel
             for i in range(len(sel1)):
                 sellower1[i], sellower2[i] = get_CtoH_selections(sellower1[i])
     else:
-        sel2[0] = u.select_atoms(sel2[0])
-        sellower2 = [None]
-        sel2[0], sellower2[0] = leafletdiv(sel2[0], leafletatom)
+        if(isinstance(sel2[0], str)):
+            sel2 = u.select_atoms(sel2[0])
+        else:
+            sel2 = MDAnalysis.AtomGroup(sel2[0], u)
+        if(leaflets):
+            sellower2 = [None]
+            sel2[0], sellower2[0] = leafletdiv(sel2[0], leafletatom)
 
     # Check the selection sizes
     for i in range(len(sel1)):
