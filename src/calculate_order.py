@@ -136,14 +136,15 @@ def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncel
     ############################################################################
 
     for ts in u.trajectory[b:e:dt]:
+        frame = ts.frame
         if(ts.frame%(10*dt)==0):
             sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
-            print(fromatstr%(ts.frame, frames))
+            print(fromatstr%(frame, frames))
 
         t=ts.time
 
         # If this isn't the first frame and the modulo is zero, do stuff
-        if(davg>0 and (ts.frame-b) % davg == 0 and ts.frame!=b):
+        if(davg>0 and (frame-b) % davg == 0 and frame!=b):
             processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
 
             datagrid = np.zeros(datagrid.shape)
@@ -226,9 +227,17 @@ def calculate_order(topol, traj, sel1, sel2="", davg=2500, b=0, e=-1, dt=1, ncel
 
     # Print the last message
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
-    print(fromatstr%(frames, frames))
+    print(fromatstr%(frame, frames))
 
-    # for the last one we'll allow less data in case theere are less frames
+
+    if(davg>0 and (frame-b) % davg == 0):
+        if(time):
+            io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
+            if(leaflets):
+                io.write_time_series(out, tx[:, b:e], timedatalow[:, b:e], "lower", plot, carbnames)
+        return
+
+    # for the last one we'll allow less data in case there are less frames
     if(davg>0):
         mindat = (mindat/davg)*(t-prev)/u.coord.dt
     else:
