@@ -17,19 +17,19 @@ def getxy(filename):
     return np.asarray(x), np.asarray(y)
 
 
-def plot(filename, name="Order parameter"):
+def plot(filename, name="Order parameter", c=-1, levels=None):
     print("Reading data from "+filename)
     Z = np.loadtxt(filename, comments=["@","#"])
     Z = np.ma.masked_invalid(Z, copy=False)
     x, y = getxy(filename)
 
-    if(np.all(np.isnan(Z))):
+    if(np.all(Z.mask)):
         print("data in %s only contains NaN's, moving on"%filename)
         return
 
     ax = plt.gca()
 
-    im = ax.contourf(x, y, -Z, corner_mask=True, vmin=-0.5, vmax=0.5, cmap="plasma", levels=np.linspace(-0.2, 0.3, 21))
+    im = ax.contourf(x, y, c*Z, corner_mask=True, cmap="plasma", levels=levels)
 
     # Create colorbar
     divider = make_axes_locatable(ax)
