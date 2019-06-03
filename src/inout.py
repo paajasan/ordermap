@@ -267,6 +267,7 @@ def optP():
     elif(not options.sel2):
         options.sel1 = getSelection(options.sel1, options.sepcar)
         print("Using selection string \"%s\" for sel1"%options.sel1)
+        options.sel2 = [options.sel2]
     else:
         options.sel2 = [options.sel2]
 
