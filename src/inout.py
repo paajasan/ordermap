@@ -239,10 +239,8 @@ def optP():
     optParser.add_argument(
         '-thickness', action="store_true",
         dest='thick',
-        help="Calculate thickness heatmaps (-leafdiv has to be specified)"
+        help="Calculate thickness heatmaps"
     )
-
-
 
     optParser.add_argument(
         '-thickatom',
@@ -277,9 +275,6 @@ def optP():
 
     if(options.out.endswith(".dat")):
         options.out = options.out[:-4]
-
-    if(options.thick and not options.leaflets):
-        raise ValueError("The thickness cannot be calculated without division to leaflets. Either specify -leafdiv or do not specify -thickness")
 
     if(options.thickatom==None):
         options.thickatom=options.divatom
