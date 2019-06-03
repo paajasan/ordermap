@@ -23,7 +23,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, **kwargs):
+def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, thick=False, thickatom="None", **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -40,16 +40,12 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
     frames = len(u.trajectory)
     print("Trajectory has %d frames of %g ps"%(frames, u.coord.dt))
 
+    if(thickatom=="None"): thickatom = leafletatom
 
     # Setup selections
-    foo = setup_selections(u, sel1, sel2, leaflets, leafletatom)
+    sel1leaf = "upper" if leaflets else ""
 
-    if(not leaflets):
-        sel1leaf = ""
-        sel1, sel2, carbnames = foo
-    else:
-        sel1leaf = "upper"
-        sel1, sel2, sellower1, sellower2, carbnames = foo
+    sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(u, sel1, sel2, leaflets, leafletatom, thick, thickatom)
 
 
     # Get x and y values from the box vectors (assumes a cubic box)
