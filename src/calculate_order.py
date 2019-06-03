@@ -23,7 +23,9 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None, out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, thick=False, thickatom="None", **kwargs):
+def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
+                    out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True,
+                    thick=False, tout="thickness", thickatom="None", **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
