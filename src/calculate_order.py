@@ -138,7 +138,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
 
             if(thick):
-                processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc", [""])
+                processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc"*plot, [""])
 
                 thickdata = np.zeros(thickdata.shape)
                 thickn    = np.zeros(thickdata.shape)
@@ -261,7 +261,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
 
     if(thick):
-        processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc", [""])
+        processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc"*plot, [""])
 
 
     if(time):
