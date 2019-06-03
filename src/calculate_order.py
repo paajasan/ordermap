@@ -12,9 +12,6 @@ import src.inout as io
 
 
 def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, carbanames):
-
-    if(carbanames==[""]):
-        print(datagrid)
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
 
