@@ -12,6 +12,9 @@ import src.inout as io
 
 
 def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, carbanames):
+
+    if(carbanames==[""]):
+        print(datagrid)
     with np.errstate(invalid='ignore'):
         datagrid /= ngrid
 
@@ -92,6 +95,10 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
         statlow     = np.empty(datagridlow.shape)
         Hlow        = np.empty(ngridlow.shape)
 
+    if(thick):
+        thickdata = np.zeros((1, ncells, ncells))
+        thickn    = np.zeros(thickdata.shape)
+
 
     print("\nStarting to iterate trajectory")
 
@@ -101,9 +108,9 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
 
     # And finally start iterating the array
-    e+=1
+    e+=1 # make e inclusive
     if(e==0):
-        e=None
+        e=None # if e is None, all the frames are used
 
     ############################################################################
     #     Trajectory iteration start                                           #
@@ -129,6 +136,13 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
                 datagridlow = np.zeros(datagrid.shape)
                 ngridlow    = np.zeros(datagrid.shape)
+
+
+            if(thick):
+                processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc", [""])
+
+                thickdata = np.zeros(thickdata.shape)
+                thickn    = np.zeros(thickdata.shape)
 
             prev =  t
             print()
@@ -168,6 +182,35 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
             # And then we calculate the amount of points in each gridcell
             H[i],    x_edge, y_edge = np.histogram2d(xcoord[i], ycoord[i],
                                                     bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
+
+        if(thick):
+            upperpos = thickup.positions
+            lowerpos = thicklow.positions
+            if(centering):
+                upperpos[:, :2] -= centerCom
+                lowerpos[:, :2] -= centerCom
+
+            upperheight, x_edge, y_edge  = np.histogram2d(upperpos[:, 0],upperpos[:, 1], weights=upperpos[:, 2], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            upperdat,    x_edge, y_edge  = np.histogram2d(upperpos[:, 0],upperpos[:, 1], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
+            lowerheight, x_edge, y_edge  = np.histogram2d(lowerpos[:, 0],lowerpos[:, 1], weights=lowerpos[:, 2], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+            lowerdat,    x_edge, y_edge  = np.histogram2d(lowerpos[:, 0],lowerpos[:, 1], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
+
+
+            hasData  = (upperdat!=0)*(lowerdat!=0)  # multiplying boolean arrays is the same as elementwise "and"
+
+            # remove zeros (we want the gridcells with no data to have 0, so that averaging works)
+            upperdat += upperdat==0
+            lowerdat += lowerdat==0
+
+            upperheight /= upperdat
+            lowerheight /= lowerdat
+
+            # the data       (upper    -   lower) * (0 where upper is 0 or lower is 0, else 1)      (upp==0 or low==0) is same as (upp!=0 and low!=0)
+            thickdata[0] += (upperheight-lowerheight)*hasData
+            thickn       += hasData
+
 
 
         if(time):
@@ -217,6 +260,11 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
     else:
         t=-1
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
+
+    if(thick):
+        processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc", [""])
+
+
     if(time):
         io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
 
