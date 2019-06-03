@@ -284,6 +284,9 @@ def optP():
     if(options.out.endswith(".dat")):
         options.out = options.out[:-4]
 
+    if(options.tout.endswith(".dat")):
+        options.tout = options.tout[:-4]
+
     if(options.thickatom==None):
         options.thickatom=options.divatom
 
