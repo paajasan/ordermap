@@ -118,9 +118,8 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
     for ts in u.trajectory[b:e:dt]:
         frame = ts.frame
-        if(ts.frame%(10*dt)==0):
-            sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
-            print(fromatstr%(frame, frames))
+        sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
+        print(fromatstr%(frame, frames))
 
         t=ts.time
 
