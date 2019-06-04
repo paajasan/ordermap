@@ -1,4 +1,5 @@
 # Order parameter calculator ordermap
+#### v0.2
 
 A program for calculating deuterium order parameter heatmaps. Also the timeseries of the parameter can be made, as well as calculating the average over the whole trajectory.
 
@@ -48,53 +49,47 @@ ordermap -f trajectories/md_fitted.xtc -s trajectories/start_nopbc.tpr -o order/
 | flag | input | description |
 | --- | - | - |
 | `-f` | fname | Trajectory [<.xtc/.trr>] |
-|`-s` | fname | Topology [<.tpr>] |
-| `-sel1` | str | Selection string (see below) |
+| `-s` | fname | Topology [<.tpr>] |
+| `-n` | fname | Index file * |
 
 
-##### Selection string syntax
+\* If `-sel1` is given (see below), index file is not required. If both are given, the index file is used.
 
-The selection string should follow a set syntax. At least for now, if it doesn't parse correctly according to said syntax, the string will be passed to MDAnalysis' [`select_atoms`](https://www.mdanalysis.org/docs/documentation_pages/selections.html#selection-keywords) and should then be a valid selection string for that. However I might deprecate that later (or have a separate flag for such selection string) and would suggest simply using the syntax specified here:
+##### Index file
 
-The syntax is `rname aname anum[-anum]`  
-Here rname is the residue name (for example "POPC"), aname is the "first part" of the atom name (propably C, since we usually just want the carbons) and the anums are the "second part" of the atom name (must be integer) and may specify a range.
+If the index file has only as single group, it is assumed to be `-sel1` and the `-sel2` is assumed to not be given. If another one is given this is used as `-sel2`. In case more than two groups are present, they are assumed to be carbons in a chain, in the right order, like with `gmx order`.
 
-**Examples:**  
-With `POPC C 29-42` we would choose all carbons between C29 and C42 in all POPC molecules.  
-With `POPC C 30` we would only choose the carbon C30 in all POPC molecules.
-
-*Note:*  
-This of course won't work if the carbon naming is somehow all weird, or the second part isn't an integer. For now then you should try to use the MDAnalysis selection strings, but in the future I plan on adding gmx index files to get around this.
-
-*Note 2:*  
-This syntax is only valid for `-sel1` and not for the selection strings in optional arguments.
-
+In any case, the index file cannot contain any additional groups, like "System" or "Protein".
 
 #### Optional arguments
 
 
 | flag| input  | description | default |
 | --- |:-:| - | :-: |
+| `-sel1` | str | Selection string (see syntax below) |
 | `-sel2` | str | Selection string [1.1] |
 | `-o` | out | Output destination [2] | "order.dat" |
+| `-to` | out | Output destination for thickness (basically the same as `-o`) | "thickness.dat" |
 | `-b` | int | First frame to read from trajectory | 0 |
 | `-e` | int | Last frame to read from trajectory [3] | -1 |
 | `-dt` | int | Only use every dt frame | 1 |
 | `-center` | str | Selection string [1.2] |
-| `-davg` | int | Number of frames to use for each heatmap [4] | 2500 |
+| `-davg` | int | Number of frames to use for each heatmap [4] | -1 |
 | `-gridn` | int | Number of gridcells along x and y (NxN grid) | 20 |
 | `-mindat` | int | Minimum number of datapoints in each cell (else NaN) | 10 |
 | `-plot` | - | If set, makes plots of the data [5] |
-| `-leafdiv` | - | If set, makes divides the selection to two leaflets [6] |
-| `-divatom` | str | The atomname to use for the division to leaflets [6] | "P*" |
+| `-leafdiv` | - | If set, the selection is divided to two leaflets [6] |
+| `-divatom` | str | The atom name to use for the division to leaflets [6] | "P*" |
 | `-timeseries` | - | If set, also plots the timeseries for the selection(s) [7] |
-| `-sepcarbs` | - | If set, calclulates everything for each carbon in the chain separetely [8] |
+| `-sepcarbs` | - | If set, calculates everything for each carbon in the chain separetely [8] |
+| `-thickness` | - | If set, also calculates membrane thickness heatmaps [9] |
+| `-thickatom` | str | The atom name to use for calculating the thickness (None means use same as `-divatom`) [9] | None |
 
-1. Selections (both have to be selection strings handled by [`select_atoms`](https://www.mdanalysis.org/docs/documentation_pages/selections.html#selection-keywords) of MDAnalysis
+1. Selections (both have to be selection strings handled by [`select_atoms`](https://www.mdanalysis.org/docs/documentation_pages/selections.html#selection-keywords) of MDAnalysis)
     1. If `-sel2` is not given, the second selection will be all the hydrogen bonded to the atoms of `-sel1` (and I'd suggest using this always).  
-    If for some reason this doesn't work, or you want to use `-sel2` for some other reason, make sure it will be the same size as `-sel1` and when ordered by atomnumber, the bonded atoms are found in the same index in each list.
+    If for some reason this doesn't work, or you want to use `-sel2` for some other reason, make sure it will be the same size as `-sel1` and when ordered by atom number, the bonded atoms are found in the same index in each list.
     2. If `-center` is given, the center of mass of this selection will be handled as the origon.  
-    Could be for example `"protein"` so then the x and y coordinates are simply distances to the protein along x or y.
+    Could be for example `"protein"` so then the x and y coordinates are simply distances to the protein center of mass along x or y.
 
 2. Output destination with or without the `.dat` extension. Each filename will also include information on the time, leaflet (if `-leafdiv`) and carbon (if `-carbon`). For both `"order"` and `"order.dat"` the final names will be something like `order_0000to0250_C29_upper.dat`.
 
@@ -117,6 +112,24 @@ If `-timeseries` is also specified, an average per carbon will also be calculate
 
 
 
+##### Selection string syntax
+
+The selection string should follow a set syntax. At least for now, if it doesn't parse correctly according to said syntax, the string will be passed to MDAnalysis' [`select_atoms`](https://www.mdanalysis.org/docs/documentation_pages/selections.html#selection-keywords) and should then be a valid selection string for that. However, for reliability, I might deprecate that later (or have a separate flag for such selection string) and would suggest simply using the syntax specified here:
+
+The syntax is `rname aname anum[-anum]`  
+Here rname is the residue name (for example "POPC"), aname is the "first part" of the atom name (propably C, since we usually just want the carbons) and the anums are the "second part" of the atom name (must be integer) and may specify a range.
+
+**Examples:**  
+With `POPC C 29-42` we would choose all carbons between C29 and C42 in all POPC molecules.  
+With `POPC C 30` we would only choose the carbon C30 in all POPC molecules.
+
+*Note:*  
+This of course won't work if the carbon naming is somehow all weird, or the second part isn't an integer. In this case it's best to use index files.
+
+*Note 2:*  
+This syntax is only valid for `-sel1` and not for `-sel2` or `-center`.
+
+
 ## Notes
 
 **Parameter calculation**  
@@ -127,9 +140,12 @@ where theta is the angle between the membrane normal and the C-H bond. For now i
 **Bonded hydrogens**  
 The hydrogens' atomnames are assumed to match the string `"H*"` and no other atoms (that are bonded to the atoms of `-sel1`) should match it.
 
+**Thickness**
+The thickness is calculated so that the height of the `-thickatom` (along the membrane normal) is averaged into a 2d grid for both leaflets and each cell that has data for both leaflets, will have the difference of these as the thickness. This is repeated over each timestep and the average over time is the final output.
+
 **Arguments**  
 Some arguments may not be foolproof, so giving  them a value outside a useful range may yield unexpected results or just crash the program.  
-Especially `-sel1` may work unexpectedly when trying to give selection strign to MDAnalysis and ot happens to comply tot the syntax discussed above.
+Especially `-sel1` may work unexpectedly when trying to give selection string to MDAnalysis and it happens to comply to the syntax discussed above.
 
 **Saved data**  
 The data in for the heatmaps is saved so the y-coordinate runs over rows and x over columns. This way you can read it with numpys `loadtxt` and y will be the 0th axis and x the 1st. Then you can simply give it to matplotlibs `contourf` and it should be oriented the right way.
