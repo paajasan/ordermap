@@ -384,7 +384,7 @@ def write_to_file(dest, x, y, data, starttime, endtime, leaflet="", plot=False, 
 
         if(plot):
             if(plot=="thicc"):
-                levels = np.linspace(-5, 15, 21)
+                levels = np.linspace(25, 55, 21)
                 c = 1
                 name = "Thickness %d to %d ns"%(starttime/1000, endtime/1000)
             else:
