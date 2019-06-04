@@ -85,7 +85,7 @@ def optP():
     optParser.add_argument(
         "-V", '--version',
         action="version",
-        version="0.2.0_dev"
+        version="0.2.0"
     )
 
 
