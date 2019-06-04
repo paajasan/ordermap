@@ -193,10 +193,10 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
             lowerheight, x_edge, y_edge  = np.histogram2d(lowerpos[:, 0],lowerpos[:, 1], weights=lowerpos[:, 2], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
             lowerdat,    x_edge, y_edge  = np.histogram2d(lowerpos[:, 0],lowerpos[:, 1], bins=ncells, range=((xmin, xmax), (ymin, ymax)))
 
-
+            # Make a "mask" for the data, that is only true when both leaflets have data
             hasData  = (upperdat!=0)*(lowerdat!=0)  # multiplying boolean arrays is the same as elementwise "and"
 
-            # remove zeros (we want the gridcells with no data to have 0, so that averaging works)
+            # remove zeros (we want the gridcells with no data to have 0 instead of nan, so that averaging works)
             upperdat += upperdat==0
             lowerdat += lowerdat==0
 
