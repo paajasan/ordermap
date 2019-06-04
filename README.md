@@ -140,7 +140,7 @@ where theta is the angle between the membrane normal and the C-H bond. For now i
 **Bonded hydrogens**  
 The hydrogens' atomnames are assumed to match the string `"H*"` and no other atoms (that are bonded to the atoms of `-sel1`) should match it.
 
-**Thickness**
+**Thickness**  
 The thickness is calculated so that the height of the `-thickatom` (along the membrane normal) is averaged into a 2d grid for both leaflets and each cell that has data for both leaflets, will have the difference of these as the thickness. This is repeated over each timestep and the average over time is the final output.
 
 **Arguments**  
