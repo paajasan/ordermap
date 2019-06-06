@@ -85,7 +85,7 @@ def optP():
     optParser.add_argument(
         "-V", '--version',
         action="version",
-        version="0.2.0"
+        version="0.3.0_dev"
     )
 
 
@@ -153,14 +153,18 @@ def optP():
     )
 
     optParser.add_argument(
+        '-noH', action="store_true",
+        dest='noH',
+        help="Uses the UA-method to calculate the order parameter (implies -sepcarb) [default: AA-method]"
+    )
+
+    optParser.add_argument(
         '-b', type=int,
         dest='b',
         metavar="N",
         default=0,
         help="The first frame to use for analysis [Default: %(default)d]"
     )
-
-
 
     optParser.add_argument(
         '-e', type=int,
@@ -259,6 +263,10 @@ def optP():
 
 
     options = optParser.parse_args()
+
+    # -noH implies -sepcarbs
+    if(options.noH):
+        options.sepcar = True
 
     if(options.ndx):
         options.sel1, options.sel2 = read_ndx(options.ndx)
