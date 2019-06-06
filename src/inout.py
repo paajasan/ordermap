@@ -34,6 +34,8 @@ def read_ndx(ndx):
         sel1 = [indexes[groups[0]]]
         sel2 = [indexes[groups[1]]]
         return sel1, sel2
+    elif(len(groups)==0):
+        raise ValueError("Index file %s empty"%ndx)
 
     sel1 = [indexes[g] for g in groups]
 
@@ -112,6 +114,10 @@ def process_options(options):
 
     if(options.sel2==[""] and not options.topol.endswith(".tpr")):
         raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
+
+    if(options.noH and len(options.sel1)<3):
+        raise ValueError("With -noH specified, at least 3 groups must be in -sel1")
+
 
     if(options.out.endswith(".dat")):
         options.out = options.out[:-4]
