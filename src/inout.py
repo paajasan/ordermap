@@ -40,6 +40,8 @@ def read_ndx(ndx):
     return sel1, [""]
 
 
+
+
 def getSelection(sel, sepcar):
     if(sepcar):
         sellist = []
@@ -77,7 +79,62 @@ def getSelection(sel, sepcar):
 
 
 
+
+def process_options(options):
+    """
+    Processes the options given in the namespace options, modfying it.
+    Returns a pointer to the original options -object.
+    """
+
+
+    # -noH implies -sepcarbs
+    if(options.noH):
+        options.sepcar = True
+
+    if(options.ndx):
+        options.sel1, options.sel2 = read_ndx(options.ndx)
+    elif(not options.sel1):
+        raise ValueError("-sel1 must be given if no index file is")
+    elif(not options.sel2):
+        options.sel1 = getSelection(options.sel1, options.sepcar)
+        print("Using selection string \"%s\" for sel1"%options.sel1)
+        options.sel2 = [options.sel2]
+    else:
+        options.sel2 = [options.sel2]
+
+    if(len(options.traj) < 4 or (options.traj[-4:] not in (".xtc", ".trr"))):
+        raise ValueError(
+            "File extension not recognised: %s\nOnly .xtc is allowed" % options.traj)
+
+    if(len(options.topol) < 4 or (options.topol[-4:] not in (".tpr", ".pdb", ".gro"))):
+        raise ValueError(
+            "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj)
+
+    if(options.sel2==[""] and not options.topol.endswith(".tpr")):
+        raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
+
+    if(options.out.endswith(".dat")):
+        options.out = options.out[:-4]
+
+    if(options.tout.endswith(".dat")):
+        options.tout = options.tout[:-4]
+
+    if(options.thickatom==None):
+        options.thickatom=options.divatom
+
+    delattr(options, "sepcar")
+    delattr(options, "ndx")
+
+    return options
+
+
+
+
 def optP():
+    """
+    Read and process the commandline args.
+    Returns a namespace-object with the arguments.
+    """
 
     description = "A program for calculating deuterium order parameter heatmaps"
     optParser = argparse.ArgumentParser(prog="ordermap", description=description)
@@ -87,7 +144,6 @@ def optP():
         action="version",
         version="0.3.0_dev"
     )
-
 
     optParser.add_argument(
         '-f', type=str,
@@ -261,49 +317,10 @@ def optP():
         help="The atomname used for calculating the thickness (if None use same as -divatom) [Default: %(default)s]"
     )
 
-
-    options = optParser.parse_args()
-
-    # -noH implies -sepcarbs
-    if(options.noH):
-        options.sepcar = True
-
-    if(options.ndx):
-        options.sel1, options.sel2 = read_ndx(options.ndx)
-    elif(not options.sel1):
-        raise ValueError("-sel1 must be given if no index file is")
-    elif(not options.sel2):
-        options.sel1 = getSelection(options.sel1, options.sepcar)
-        print("Using selection string \"%s\" for sel1"%options.sel1)
-        options.sel2 = [options.sel2]
-    else:
-        options.sel2 = [options.sel2]
-
-    if(len(options.traj) < 4 or (options.traj[-4:] not in (".xtc", ".trr"))):
-        raise ValueError(
-            "File extension not recognised: %s\nOnly .xtc is allowed" % options.traj)
-
-    if(len(options.topol) < 4 or (options.topol[-4:] not in (".tpr", ".pdb", ".gro"))):
-        raise ValueError(
-            "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj)
-
-    if(options.sel2==[""] and not options.topol.endswith(".tpr")):
-        raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
-
-    if(options.out.endswith(".dat")):
-        options.out = options.out[:-4]
-
-    if(options.tout.endswith(".dat")):
-        options.tout = options.tout[:-4]
-
-    if(options.thickatom==None):
-        options.thickatom=options.divatom
-
-    delattr(options, "sepcar")
-    delattr(options, "ndx")
+    return process_options(optParser.parse_args())
 
 
-    return options
+
 
 
 
