@@ -129,6 +129,9 @@ def process_options(options):
     if(options.thickatom==None):
         options.thickatom=options.divatom
 
+    options.u = np.asarray(options.u)
+    options.u /= np.linalg.norm(options.u)
+
     delattr(options, "sepcar")
     delattr(options, "ndx")
 
@@ -296,13 +299,11 @@ def optP():
         help="The atomname used for the division of leaflets [Default: %(default)s]"
     )
 
-
     optParser.add_argument(
         '-timeseries', action="store_true",
         dest='time',
         help="Also outputs the order parameter for each timestep"
     )
-
 
     optParser.add_argument(
         '-sepcarbs', action="store_true",
@@ -310,6 +311,11 @@ def optP():
         help="Calculate everything separately for each carbon (only effective if sel2 not given and sel1 is not to be passed straight down to MDAnalysis)"
     )
 
+    optParser.add_argument(
+        '-normal', type=float, default=(0.0, 0.0, 1.0),
+        dest='u', nargs=3, metavar="x",
+        help="The membrane normal (doesn't have to be normalized) [default: (0, 0, 1)]"
+    )
 
     optParser.add_argument(
         '-thickness', action="store_true",
