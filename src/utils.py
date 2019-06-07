@@ -33,20 +33,17 @@ def leafletdiv(atomgroup, divatom):
 
 
 
-def costheta2(vec):
+def costheta2(vec, u):
     """
-    Calculate the square of the cosine of the angle between the vector and z-axis
-     Fortunately the dot product of (x1,x2,x3) and (0,0,1) is simply x3, so the
-    calculation is rather trivial
-     If vec is a numpy ndarray, then the result will be calculated over the first
-    dimension, which should be of length 3 (any additional columns will be ignored
-    and less columns will give an error)
+    Calculate the square of the cosine of the angle between the vector and u
+     Vec should be a numpy ndarray, then the result will be calculated over the last
+    dimension, which should be of length 3
     """
-    return (vec[2]**2 / (vec[0]**2+vec[1]**2+vec[2]**2))
+    return (np.dot(vec, u) / np.linalg.norm(vec, axis=-1))**2
 
 
 
-def orderNoH(r, u=(0, 0, 1)):
+def orderNoH(r, u):
     S  = np.full(r.shape[:-1], np.nan)
     # x1 is vec from Cn-1 to Cn
     x1 = r[1:-1]-r[:-2]
@@ -70,13 +67,13 @@ def orderNoH(r, u=(0, 0, 1)):
 
 
 
-def order(r1, r2, noH):
+def order(r1, r2, noH, u=(0, 0, 1)):
     if(not noH):
         w = [None for r in r1]
         for i in range(len(r1)):
-            w[i] = 1.5*costheta2((r2[i]-r1[i]).T)-0.5
+            w[i] = 1.5*costheta2(r2[i]-r1[i], u)-0.5
     else:
-        w = orderNoH(r1)
+        w = orderNoH(r1, u)
     return w
 
 
