@@ -23,7 +23,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 
-def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
+def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
                     out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True,
                     thick=False, tout="thickness", thickatom="None", **kwargs):
     """
@@ -47,7 +47,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
     # Setup selections
     sel1leaf = "upper" if leaflets else ""
 
-    sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(u, sel1, sel2, leaflets, leafletatom, thick, thickatom)
+    sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(u, sel1, sel2, leaflets, leafletatom, thick, thickatom, noH)
 
 
     # Get x and y values from the box vectors (assumes a cubic box)
@@ -93,6 +93,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
         Hlow        = np.empty(ngridlow.shape)
 
     if(thick):
+        # The first dimension is size 1, so that the array works with io.write_to_file() and processAndWrite()
         thickdata = np.zeros((1, ncells, ncells))
         thickn    = np.zeros(thickdata.shape)
 
@@ -146,9 +147,14 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
 
         r1 = [s.positions for s in sel1]
-        r2 = [s.positions for s in sel2]
-        xycoord = [r[:, 0:2] for r in r1]
-        vec = [R2-R1 for R1, R2 in zip(r1, r2)]
+        if(noH):
+            r1 = np.asarray(r1)
+        r2 = None
+        if(not noH):
+            r2 = [s.positions for s in sel2]
+            vec = [R2-R1 for R1, R2 in zip(r1, r2)]
+
+        xycoord = [r[:, 0:2].copy() for r in r1]
         if(centering):
             centerCom = center.center_of_mass()[0:2]
             for i in range(len(xycoord)):
@@ -158,9 +164,14 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
         if(leaflets):
             r1low = [s.positions for s in sellower1]
-            r2low = [s.positions for s in sellower2]
-            xycoordlow = [r[:, 0:2] for r in r1low]
-            veclow = [R2-R1 for R1, R2 in zip(r1low, r2low)]
+            if(noH):
+                r1low = np.asarray(r1low)
+            r2low = None
+            if(not noH):
+                r2low = [s.positions for s in sellower2]
+                veclow = [R2-R1 for R1, R2 in zip(r1low, r2low)]
+
+            xycoordlow = [r[:, 0:2].copy() for r in r1low]
             if(centering):
                 for i in range(len(xycoordlow)):
                     xycoordlow[i] -= centerCom
@@ -168,10 +179,9 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
 
             xcoordlow, ycoordlow = ([z[:,0] for z in xycoordlow], [z[:,1] for z in xycoordlow])
 
-        w = [np.zeros(xx.shape) for xx in xcoord]
+        w = order(r1, r2, noH)
 
         for i in range(H.shape[0]):
-            w[i] = 1.5*costheta2(vec[i].T)-0.5
             # A weighted (non normed) histogram is just the sums of the weights in each gridcell
             stat[i], x_edge, y_edge = np.histogram2d(xcoord[i], ycoord[i], weights=w[i],
                                                     bins=ncells, range=((xmin, xmax), (ymin, ymax)))
@@ -217,10 +227,9 @@ def calculate_order(topol, traj, sel1, sel2=[""], davg=2500, b=0, e=-1, dt=1, nc
         ngrid    += H
 
         if(leaflets):
-            w = [np.zeros(xx.shape) for xx in xcoordlow]
+            w = order(r1low, r2low, noH)
 
             for i in range(Hlow.shape[0]):
-                w[i] = 1.5*costheta2(veclow[i].T) - 0.5
                 statlow[i], x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i], weights=w[i],
                                                         bins=ncells, range=((xmin, xmax), (ymin, ymax)))
                 Hlow[i],    x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i],

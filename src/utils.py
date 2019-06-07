@@ -45,6 +45,56 @@ def costheta2(vec):
     return (vec[2]**2 / (vec[0]**2+vec[1]**2+vec[2]**2))
 
 
+
+def orderNoH(r, u=(0, 0, 1)):
+    S  = np.full(r.shape[:-1], np.nan)
+    # x1 is vec from Cn-1 to Cn
+    x1 = r[1:-1]-r[:-2]
+    # x2 is vec from Cn to Cn+1
+    x2 = r[2:]  -r[1:-1]
+    # Sz is vec from Cn-1 to Cn+1
+    Sz = x1+x2
+    # Sx = x1 x x2
+    Sx = np.cross(x1, x2)
+    # Sy = Sx x Sz
+    Sy = np.cross(Sx, Sz)
+    # normalize Sx and Sy
+    Sx /= np.linalg.norm(Sx, axis=-1, keepdims=True)
+    Sy /= np.linalg.norm(Sy, axis=-1, keepdims=True)
+    # get the component of Sx and Sy orhogonal with the membrane normal
+    sx = 1.5*np.dot(Sx, u)**2-0.5
+    sy = 1.5*np.dot(Sy, u)**2-0.5
+    # S = 1/3(2sx+sy)
+    S[1:-1] = 2*sx/3+sy/3
+    return S
+
+
+
+def order(r1, r2, noH):
+    if(not noH):
+        w = [None for r in r1]
+        for i in range(len(r1)):
+            w[i] = 1.5*costheta2((r2[i]-r1[i]).T)-0.5
+    else:
+        w = orderNoH(r1)
+    return w
+
+
+
+def checkBondLengths(r):
+    """
+    A sanity check, that checks if the bonds are waay too long (for noH calculation), meaning there's a
+    problem with the indexing of the group
+    """
+
+    # x1 is vec from Cn-1 to Cn
+    x1 = r[1:-1]-r[:-2]
+    # x2 is vec from Cn to Cn+1
+    x2 = r[2:]  -r[1:-1]
+    if(np.any(np.linalg.norm(x1, axis=-1)>3) or np.any(np.linalg.norm(x2, axis=-1)>3)):
+        raise ValueError("A bond longer than 3 Å found, check your index file / -sel1")
+
+
 def get_CtoH_selections(carbons):
     if(np.all([carbons[0].name==c.name for c in carbons])):
         print("Starting to find the hydrogen bonded to %d atoms (%s)"%(len(carbons), carbons[0].name))
@@ -132,11 +182,17 @@ def setup_selections(u, sel1, sel2, leaflets, leafletatom, thick, thickatom, noH
         for i, sel in enumerate(sel1):
             if(len(sel)!=len(sel1[0])):
                 raise ValueError("-noH=True, but sel1[0] and sel1[%d] are different sizes: %d and %d" % (i, len(sel1[0].atoms), len(sel.atoms)))
+        # Also check the bond lengths
+        checkBondLengths(np.array([s.positions for s in sel1]))
 
 
     if(leaflets):
-        print("Calculating order parameter for selections of %d atoms for upper leaflet"%(np.sum([len(s.atoms) for s in sel1])))
-        print("Calculating order parameter for selections of %d atoms for lower leaflet"%(np.sum([len(s.atoms) for s in sellower1])))
+        if(noH):
+            print("Calculating order parameter for %d selections of %d atoms for upper leaflet"%(len(sel1), len(sel1[0])))
+            print("Calculating order parameter for %d selections of %d atoms for lower leaflet"%(len(sel1), len(sel1[0])))
+        else:
+            print("Calculating order parameter for selections of %d atoms for upper leaflet"%(np.sum([len(s.atoms) for s in sel1])))
+            print("Calculating order parameter for selections of %d atoms for lower leaflet"%(np.sum([len(s.atoms) for s in sellower1])))
     else:
         if(noH):
             print("Calculating order parameter for %d selections of %d atoms"%(len(sel1), len(sel1[0])))
