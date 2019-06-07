@@ -25,7 +25,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
                     out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True,
-                    thick=False, tout="thickness", thickatom="None", **kwargs):
+                    thick=False, tout="thickness", thickatom="None", u=(0,0,1), **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -37,28 +37,28 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
     print("Setting up universe")
     # Start by loading a universe object
-    u = MDAnalysis.Universe(topol, traj)
-    print(u)
-    frames = len(u.trajectory)
-    print("Trajectory has %d frames of %g ps"%(frames, u.coord.dt))
+    univ = MDAnalysis.Universe(topol, traj)
+    print(univ)
+    frames = len(univ.trajectory)
+    print("Trajectory has %d frames of %g ps"%(frames, univ.coord.dt))
 
     if(thickatom=="None"): thickatom = leafletatom
 
     # Setup selections
     sel1leaf = "upper" if leaflets else ""
 
-    sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(u, sel1, sel2, leaflets, leafletatom, thick, thickatom, noH)
+    sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(univ, sel1, sel2, leaflets, leafletatom, thick, thickatom, noH)
 
 
     # Get x and y values from the box vectors (assumes a cubic box)
-    dim = u.dimensions
+    dim = univ.dimensions
     x = np.linspace(0, dim[0], ncells+1)
     y = np.linspace(0, dim[1], ncells+1)
 
     # If we are centering, also get the centering group
     centering = False
     if(center != None):
-        center = u.select_atoms(center)
+        center = univ.select_atoms(center)
         print("Using centering:\ncenter %d atoms"%len(center.atoms))
         centering = True
         com = center.center_of_mass()
@@ -75,7 +75,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
 
     # Set up the grids and a variable for storing the satrttime of each davg
-    prev = b*u.coord.dt
+    prev = b*univ.coord.dt
     datagrid = np.zeros((len(sel1), ncells, ncells))
     ngrid    = np.zeros(datagrid.shape)
     timedata = np.zeros((len(sel1), frames))
@@ -114,7 +114,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
     #     Trajectory iteration start                                           #
     ############################################################################
 
-    for ts in u.trajectory[b:e:dt]:
+    for ts in univ.trajectory[b:e:dt]:
         frame = ts.frame
         sys.stdout.write("\033[F\033[K") #Back to prev line and clear it
         print(fromatstr%(frame, frames))
@@ -179,7 +179,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
             xcoordlow, ycoordlow = ([z[:,0] for z in xycoordlow], [z[:,1] for z in xycoordlow])
 
-        w = order(r1, r2, noH)
+        w = order(r1, r2, noH, u)
 
         for i in range(H.shape[0]):
             # A weighted (non normed) histogram is just the sums of the weights in each gridcell
@@ -227,7 +227,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         ngrid    += H
 
         if(leaflets):
-            w = order(r1low, r2low, noH)
+            w = order(r1low, r2low, noH, u)
 
             for i in range(Hlow.shape[0]):
                 statlow[i], x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i], weights=w[i],
@@ -261,7 +261,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
     # for the last one we'll allow less data in case there are less frames
     if(davg>0):
-        mindat = (mindat/davg)*(t-prev)/u.coord.dt
+        mindat = (mindat/davg)*(t-prev)/univ.coord.dt
     else:
         t=-1
     processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
