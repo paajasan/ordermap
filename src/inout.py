@@ -113,7 +113,7 @@ def process_options(options):
         raise ValueError(
             "File extension not recognised: %s\nLegal extensions are .pdb, .gro and .tpr" % options.traj)
 
-    if(options.sel2==[""] and not options.topol.endswith(".tpr")):
+    if(options.sel2==[""] and not options.noH and not options.topol.endswith(".tpr")):
         raise ValueError("If the second selection isn't given, a tpr file is needed to get the bonds between atoms")
 
     if(options.noH and len(options.sel1)<3):
