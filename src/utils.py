@@ -36,8 +36,8 @@ def leafletdiv(atomgroup, divatom):
 def costheta2(vec, u):
     """
     Calculate the square of the cosine of the angle between the vector and u
-     Vec should be a numpy ndarray, then the result will be calculated over the last
-    dimension, which should be of length 3
+     Vec should be a numpy ndarray, then the result will be calculated
+    over the last dimension, which should be of length 3
     """
     return (np.dot(vec, u) / np.linalg.norm(vec, axis=-1))**2
 
@@ -67,7 +67,17 @@ def orderNoH(r, u):
 
 
 
-def order(r1, r2, noH, u=(0, 0, 1)):
+def order(r1, r2=None, noH=True, u=(0, 0, 1)):
+    """A function for calculating the order parameter
+    params:
+        with noH=False:
+            r1: ndarray(...,3) of atomic positions C
+            r2: ndarray(...,3) of matching coordinates of H
+        with noH=True:
+            r1: ndarray(m,n,3) of carbon coordinates of m carbons in n chains
+            r2: ignored
+        u: membrane normal unit vector
+    """
     if(not noH):
         w = [None for r in r1]
         for i in range(len(r1)):
