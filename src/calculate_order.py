@@ -11,8 +11,12 @@ import src.inout as io
 
 
 
-def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, carbanames):
+def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, carbanames, sepcar=False):
     with np.errstate(invalid='ignore'):
+        if(not sepcar and datagrid.shape[0]!=1):
+            datagrid = np.sum(datagrid, axis=0).reshape(([1]+list(datagrid.shape[1:])))
+            ngrid    = np.sum(ngrid,    axis=0).reshape(([1]+list(datagrid.shape[1:])))
+            carbanames = [""]
         datagrid /= ngrid
 
     # Write NaNs to where the ngrid is too small
@@ -25,7 +29,7 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
                     out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True,
-                    thick=False, tout="thickness", thickatom="None", u=(0,0,1), **kwargs):
+                    thick=False, tout="thickness", thickatom="None", u=(0,0,1), sepcar=False, **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -123,7 +127,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
         # If this isn't the first frame and the modulo is zero, do stuff
         if(davg>0 and (frame-b) % davg == 0 and frame!=b):
-            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
+            processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames, sepcar)
 
             datagrid = np.zeros(datagrid.shape)
             ngrid    = np.zeros(datagrid.shape)
@@ -251,6 +255,9 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
     sys.stdout.write("\033[F\033[K") #Back o prev line and clear it
     print(fromatstr%(frame, frames))
 
+    if((not sepcar) and timedata.shape[0]>1):
+        timedata  = np.mean(timedata, axis=0).reshape(([1]+list(timedata.shape[1:])))
+        carbnames = [""]
 
     if(davg>0 and (frame-b) % davg == 0):
         if(time):
@@ -264,10 +271,10 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         mindat = (mindat/davg)*(t-prev)/univ.coord.dt
     else:
         t=-1
-    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames)
+    processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, sel1leaf, plot, carbnames, sepcar)
 
     if(thick):
-        processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc"*plot, [""])
+        processAndWrite(thickdata, thickn, 0, tout, x, y, prev, t, "", "thicc"*plot, [""], sepcar)
 
 
     if(time):

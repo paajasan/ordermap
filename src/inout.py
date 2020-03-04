@@ -89,17 +89,12 @@ def process_options(options):
     Returns a pointer to the original options -object.
     """
 
-
-    # -noH implies -sepcarbs
-    if(options.noH):
-        options.sepcar = True
-
     if(options.ndx):
         options.sel1, options.sel2 = read_ndx(options.ndx)
     elif(not options.sel1):
         raise ValueError("-sel1 must be given if no index file is")
     elif(not options.sel2):
-        options.sel1 = getSelection(options.sel1, options.sepcar)
+        options.sel1 = getSelection(options.sel1, options.sepcar or options.noH)
         print("Using selection string \"%s\" for sel1"%options.sel1)
         options.sel2 = [options.sel2]
     else:
@@ -132,7 +127,6 @@ def process_options(options):
     options.u = np.asarray(options.u)
     options.u /= np.linalg.norm(options.u)
 
-    delattr(options, "sepcar")
     delattr(options, "ndx")
 
     return options
@@ -221,7 +215,7 @@ def optP():
     optParser.add_argument(
         '-noH', action="store_true",
         dest='noH',
-        help="Uses the UA-method to calculate the order parameter (implies -sepcarb) [default: AA-method]"
+        help="Uses the UA-method to calculate the order parameter [default: AA-method]"
     )
 
     optParser.add_argument(
