@@ -75,7 +75,7 @@ def orderNoH(r, u, unsatInd=None):
     Sz = x1+x2
     if not unsatInd is None:
         # Sz is different if unsaturated
-        Sz[i] = r[i+1]-r[i]
+        Sz[unsatInd] = r[unsatInd+1]-r[unsatInd]
     # Sx = x1 x x2
     Sx = np.cross(x1, x2)
     # Sy = Sx x Sz
