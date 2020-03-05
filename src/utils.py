@@ -74,6 +74,7 @@ def orderNoH(r, u, unsatInd=None):
     # Sz is vec from Cn-1 to Cn+1
     Sz = x1+x2
     if not unsatInd is None:
+        # Sz is different if unsaturated
         Sz[i] = r[i+1]-r[i]
     # Sx = x1 x x2
     Sx = np.cross(x1, x2)
@@ -88,27 +89,33 @@ def orderNoH(r, u, unsatInd=None):
     sy = 1.5*syy**2-0.5
     # S = 1/3(2sx+sy)
     S[1:-1] = 2*sx/3+sy/3
-    
+
     if not unsatInd is None:
+        # Finish calculation for Sz
         Sz /= np.linalg.norm(Sz, axis=-1, keepdims=True)
         szz = np.dot(Sz[unsatInd], u)
         sz = 1.5*szz**2-0.5
+        # First atom of double bond
         S[unsatInd]   = sz/4+3*sy[unsatInd]  /4 + 1.299038105676658*syy[unsatInd]  *szz
+        # Second atom of double bond (same sz and szz, different sy and syy)
         S[unsatInd+1] = sz/4+3*sy[unsatInd+1]/4 - 1.299038105676658*syy[unsatInd+1]*szz
 
     return S
 
 
 
-def order(r1, r2=None, noH=True, u=(0, 0, 1)):
+def order(r1, r2=None, unsatInd=None, noH=True, u=(0, 0, 1)):
     """A function for calculating the order parameter
     params:
         with noH=False:
-            r1: ndarray(...,3) of atomic positions C
+            r1: ndarray(...,3) of atomic positions of C
             r2: ndarray(...,3) of matching coordinates of H
+            unsatInd: ignored
         with noH=True:
             r1: ndarray(m,n,3) of carbon coordinates of m carbons in n chains
             r2: ignored
+            unsatInd: None or an array of the first unsaturated carbons for
+                each double bond. Values have to be in [1,m-2]
         u: membrane normal unit vector
     """
     if(not noH):
@@ -116,7 +123,7 @@ def order(r1, r2=None, noH=True, u=(0, 0, 1)):
         for i in range(len(r1)):
             w[i] = 1.5*costheta2(r2[i]-r1[i], u)-0.5
     else:
-        w = orderNoH(r1, u)
+        w = orderNoH(r1, u, unsatInd)
     return w
 
 
