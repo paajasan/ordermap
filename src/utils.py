@@ -65,7 +65,7 @@ def costheta2(vec, u):
 
 
 
-def orderNoH(r, u):
+def orderNoH(r, u, unsatInd=None):
     S  = np.full(r.shape[:-1], np.nan)
     # x1 is vec from Cn-1 to Cn
     x1 = r[1:-1]-r[:-2]
@@ -73,6 +73,8 @@ def orderNoH(r, u):
     x2 = r[2:]  -r[1:-1]
     # Sz is vec from Cn-1 to Cn+1
     Sz = x1+x2
+    if not unsatInd is None:
+        Sz[i] = r[i+1]-r[i]
     # Sx = x1 x x2
     Sx = np.cross(x1, x2)
     # Sy = Sx x Sz
@@ -81,10 +83,19 @@ def orderNoH(r, u):
     Sx /= np.linalg.norm(Sx, axis=-1, keepdims=True)
     Sy /= np.linalg.norm(Sy, axis=-1, keepdims=True)
     # get the component of Sx and Sy orhogonal with the membrane normal
+    syy = np.dot(Sy, u)
     sx = 1.5*np.dot(Sx, u)**2-0.5
-    sy = 1.5*np.dot(Sy, u)**2-0.5
+    sy = 1.5*syy**2-0.5
     # S = 1/3(2sx+sy)
     S[1:-1] = 2*sx/3+sy/3
+    
+    if not unsatInd is None:
+        Sz /= np.linalg.norm(Sz, axis=-1, keepdims=True)
+        szz = np.dot(Sz[unsatInd], u)
+        sz = 1.5*szz**2-0.5
+        S[unsatInd]   = sz/4+3*sy[unsatInd]  /4 + 1.299038105676658*syy[unsatInd]  *szz
+        S[unsatInd+1] = sz/4+3*sy[unsatInd+1]/4 - 1.299038105676658*syy[unsatInd+1]*szz
+
     return S
 
 
