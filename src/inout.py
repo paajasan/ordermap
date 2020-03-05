@@ -114,6 +114,15 @@ def process_options(options):
     if(options.noH and len(options.sel1)<3):
         raise ValueError("With -noH specified, at least 3 groups must be in -sel1")
 
+    if(options.unsatInd):
+        if(not options.noH):
+            warnings.warn("Unsaturated indexes not needed when calculating with hydrogen.\n"\
+               "Either provide option -noH or do not provide -unsatInd. Ignoring unsatInd...")
+            options.unsatInd=None
+        else:
+            options.unsatInd = np.array(options.unsatInd)
+            if(np.any(options.unsatInd<1) or np.any(options.unsatInd>len(options.sel1)-2)):
+                raise ValueError("Unsaturated indexes must be in range [1,m-2] (now m=%d)"%len(options.sel1))
 
     if(options.out.endswith(".dat")):
         options.out = options.out[:-4]
@@ -216,6 +225,16 @@ def optP():
         '-noH', action="store_true",
         dest='noH',
         help="Uses the UA-method to calculate the order parameter [default: AA-method]"
+    )
+
+    optParser.add_argument(
+        '-unsatInd', type=int, nargs="+",
+        dest='unsatInd',
+        metavar="i",
+        default=None,
+        help="0-based indexes of unsaturated carbon in each chain (with m-length "\
+             "chain, give first carbon of double bond with each index in [1,m-2]) "\
+             "[default: %(default)s]"
     )
 
     optParser.add_argument(
