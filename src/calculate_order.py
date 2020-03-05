@@ -28,8 +28,8 @@ def processAndWrite(datagrid, ngrid, mindat, out, x, y, prev, t, leaflet, plot, 
 
 
 def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-1, dt=1, ncells=20, center=None,
-                    out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True,
-                    thick=False, tout="thickness", thickatom="None", u=(0,0,1), sepcar=False, **kwargs):
+                    out="order", plot=False, mindat=10, leaflets=False, leafletatom="P*", time=True, thick=False,
+                    tout="thickness", thickatom="None", u=(0,0,1), sepcar=False, unsatInd=None, **kwargs):
     """
     A function that does all the magic.
     The parameters are pretty much simply those of the program itself, with the same defaults.
@@ -182,7 +182,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
             xcoordlow, ycoordlow = ([z[:,0] for z in xycoordlow], [z[:,1] for z in xycoordlow])
 
-        w = order(r1, r2, noH, u)
+        w = order(r1, r2, unsatInd, noH, u)
 
         for i in range(H.shape[0]):
             # A weighted (non normed) histogram is just the sums of the weights in each gridcell
@@ -234,7 +234,7 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         ngrid    += H
 
         if(leaflets):
-            w = order(r1low, r2low, noH, u)
+            w = order(r1low, r2low, unsatInd, noH, u)
 
             for i in range(Hlow.shape[0]):
                 statlow[i], x_edge, y_edge = np.histogram2d(xcoordlow[i], ycoordlow[i], weights=w[i],
