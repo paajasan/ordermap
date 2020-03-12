@@ -67,19 +67,22 @@ def costheta2(vec, u):
 
 def orderNoH(r, u, unsatInd=None):
     S  = np.full(r.shape[:-1], np.nan)
-    # x1 is vec from Cn-1 to Cn
-    x1 = r[1:-1]-r[:-2]
+    # x1 is vec from Cn to Cn-1
+    x1 = r[:-2] -r[1:-1]
     # x2 is vec from Cn to Cn+1
-    x2 = r[2:]  -r[1:-1]
-    # Sz is vec from Cn-1 to Cn+1
-    Sz = x1+x2
-    if not unsatInd is None:
-        # Sz is different if unsaturated
-        Sz[unsatInd] = r[unsatInd+1]-r[unsatInd]
+    x2 = r[2:]-r[1:-1]
+    # Sz is vec from Cn+1 to Cn-1
+    Sz = r[:-2]-r[2:]
     # Sx = x1 x x2
     Sx = np.cross(x1, x2)
+    if not unsatInd is None:
+        # Sz is different if unsaturated
+        Sz[unsatInd-1] = r[unsatInd]-r[unsatInd+1]
+        Sz[unsatInd]   = Sz[unsatInd-1]
+        # For first unsat carbon Sz is the x2 from above, so Sx=Sz x x1=x2 x x1
+        Sx[unsatInd-1]  *= -1
     # Sy = Sx x Sz
-    Sy = np.cross(Sx, Sz)
+    Sy = np.cross(Sz, Sx)
     # normalize Sx and Sy
     Sx /= np.linalg.norm(Sx, axis=-1, keepdims=True)
     Sy /= np.linalg.norm(Sy, axis=-1, keepdims=True)
@@ -93,12 +96,15 @@ def orderNoH(r, u, unsatInd=None):
     if not unsatInd is None:
         # Finish calculation for Sz
         Sz /= np.linalg.norm(Sz, axis=-1, keepdims=True)
-        szz = np.dot(Sz[unsatInd], u)
+        szz = np.dot(Sz[unsatInd-1], u)
         sz = 1.5*szz**2-0.5
         # First atom of double bond
-        S[unsatInd]   = sz/4+3*sy[unsatInd]  /4 + 1.299038105676658*syy[unsatInd]  *szz
+        S[unsatInd]   = sz/4+3*sy[unsatInd-1]/4 - 1.299038105676658*syy[unsatInd-1]*szz
         # Second atom of double bond (same sz and szz, different sy and syy)
-        S[unsatInd+1] = sz/4+3*sy[unsatInd+1]/4 - 1.299038105676658*syy[unsatInd+1]*szz
+        S[unsatInd+1] = sz/4+3*sy[unsatInd]  /4 + 1.299038105676658*syy[unsatInd]  *szz
+        # Why does this fix it, WTF???
+        #S[unsatInd] *=2
+        #S[unsatInd+1] *=2
 
     return S
 
