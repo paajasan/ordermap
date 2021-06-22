@@ -54,10 +54,11 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
     sel1, sel2, sellower1, sellower2, thickup, thicklow, carbnames = setup_selections(univ, sel1, sel2, leaflets, leafletatom, thick, thickatom, noH)
 
 
-    # Get x and y values from the box vectors (assumes a cubic box)
+    # Get x and y values from the box vectors
     dim = univ.dimensions
-    x = np.linspace(0, dim[0], ncells+1)
-    y = np.linspace(0, dim[1], ncells+1)
+    xmin,xmax,ymin,ymax = xy_extent(dim)
+    x = np.linspace(xmin, xmax, ncells+1)
+    y = np.linspace(ymin, ymax, ncells+1)
 
     # If we are centering, also get the centering group
     centering = False
@@ -69,10 +70,6 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         x -= com[0]
         y -= com[1]
 
-    xmax = x[-1]
-    xmin = x[0]
-    ymax = y[-1]
-    ymin = y[0]
     # move x and y from bin edges to bin centers
     x = x[:-1]+(x[1]-x[0])/2
     y = y[:-1]+(y[1]-y[0])/2

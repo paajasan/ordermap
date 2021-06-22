@@ -5,6 +5,28 @@ import MDAnalysis, sys
 
 outputted1=False
 
+def xy_extent(dims):
+    """
+    Calculate xy extent from dimensions as (x,y,z,a,b,g) (angles in degrees)
+    return xmin,xmax,ymin,ymax
+    """
+    x,y,z,a,b,g = dims
+    if(g==90):
+        return 0,x,0,y
+    # Change to radians
+    a,b,g = np.deg2rad((a,b,g))
+    # x is trivial and y easy, also we don't need z
+    x = (x,0,0)
+    y = (y*np.cos(g), y*np.sin(g), 0)
+    if(y[0]<0):
+        xmax = x[0]
+        xmin = -y[0]
+    else:
+        xmax = x[0]+y[0]
+        xmin = 0
+
+    return xmin,xmax,0,y[1]
+
 
 def leafletdiv(atomgroup, divatom):
     global outputted1
