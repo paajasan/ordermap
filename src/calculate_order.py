@@ -100,6 +100,8 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         # The first dimension is size 1, so that the array works with io.write_to_file() and processAndWrite()
         thickdata = np.zeros((1, ncells, ncells))
         thickn    = np.zeros(thickdata.shape)
+        thicktimedata = np.zeros((1, frames))
+        thicktx       = np.zeros((1, frames))
 
 
     print("\nStarting to iterate trajectory")
@@ -226,6 +228,10 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
         if(time):
             timedata[:, ts.frame] = [np.mean(wi) for wi in w]
             tx[:, ts.frame]       = t
+            if(thick):
+                thicktimedata[0,ts.frame] = np.mean(upperpos[:, 2])-np.mean(lowerpos[:, 2])
+                thicktx[0,ts.frame]       = t
+
 
         datagrid += stat
         ngrid    += H
@@ -262,6 +268,8 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
     if(davg>0 and (frame-b) % davg == 0):
         if(time):
             io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
+            if(thick):
+                io.write_time_series(tout, thicktx[:, b:e], thicktimedata[:, b:e], "", plot, [""])
             if(leaflets):
                 io.write_time_series(out, tx[:, b:e], timedatalow[:, b:e], "lower", plot, carbnames)
         return
@@ -279,6 +287,8 @@ def calculate_order(topol, traj, sel1, sel2=[""], noH=False, davg=2500, b=0, e=-
 
     if(time):
         io.write_time_series(out, tx[:, b:e], timedata[:, b:e], sel1leaf, plot, carbnames)
+        if(thick):
+            io.write_time_series(tout, thicktx[:, b:e], thicktimedata[:, b:e], "", plot, [""])
 
     if(leaflets):
         processAndWrite(datagridlow, ngridlow, mindat, out, x, y, prev, t, "lower", plot, carbnames)
