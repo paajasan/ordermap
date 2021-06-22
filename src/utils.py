@@ -20,7 +20,7 @@ def xy_extent(dims):
     y = (y*np.cos(g), y*np.sin(g), 0)
     if(y[0]<0):
         xmax = x[0]
-        xmin = -y[0]
+        xmin = y[0]
     else:
         xmax = x[0]+y[0]
         xmin = 0
