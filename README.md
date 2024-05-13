@@ -1,5 +1,5 @@
 # Order parameter calculator ordermap
-#### v0.2
+#### v0.3
 
 A program for calculating deuterium order parameter heatmaps. Also the timeseries of the parameter can be made, as well as calculating the average over the whole trajectory.
 
@@ -16,7 +16,7 @@ A program for calculating deuterium order parameter heatmaps. Also the timeserie
 
 Basically install [MDAnalysis](https://www.mdanalysis.org/), and other than that the basic python3 should have everything ready.
 
-**Notice**: I have so far only tested this with `python3.7` (3.7.1, to be exact), and though it should work with other `python3.x`, please keep this in mind. If you do use other versions, please let [me](mailto:santeri.e.paajanen@helsinki.fi) know if it works or not.
+**Notice**: I have so far only tested this with `python3.7` (3.7.1, to be exact), and though it should work with other `python3.x`, please keep this in mind.
 
 ### Installing
 
